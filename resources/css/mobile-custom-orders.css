@@ -1,0 +1,448 @@
+/* Mobile-First Custom Orders Styles */
+
+/* Base Mobile Styles */
+@media (max-width: 640px) {
+    /* Admin Dashboard Mobile */
+    .admin-orders-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+    
+    .admin-stats-cards {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.75rem;
+    }
+    
+    .admin-order-card {
+        padding: 1rem !important;
+    }
+    
+    .admin-order-card .order-image {
+        height: 120px !important;
+    }
+    
+    .bulk-actions-bar {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .bulk-actions-bar .flex {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .bulk-actions-bar button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* User Orders Mobile */
+    .user-stats-cards {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.75rem;
+    }
+    
+    .user-stats-cards .p-6 {
+        padding: 1rem !important;
+    }
+    
+    .user-orders-table {
+        font-size: 0.875rem;
+    }
+    
+    .user-orders-table th,
+    .user-orders-table td {
+        padding: 0.5rem !important;
+    }
+    
+    .user-orders-table .text-lg {
+        font-size: 1rem !important;
+    }
+    
+    .filter-search-bar {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .filter-buttons {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .filter-btn {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Wizard Mobile */
+    .wizard-progress-steps {
+        display: none;
+    }
+    
+    .wizard-progress-mobile {
+        display: flex !important;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+    }
+    
+    .wizard-progress-mobile .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    
+    .wizard-progress-mobile .step::after {
+        content: '';
+        position: absolute;
+        top: 1rem;
+        right: -50%;
+        width: 100%;
+        height: 2px;
+        background: #e5e7eb;
+        z-index: -1;
+    }
+    
+    .wizard-progress-mobile .step:last-child::after {
+        display: none;
+    }
+    
+    .wizard-progress-mobile .step.active::after {
+        background: #9333ea;
+    }
+    
+    .product-search-bar {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .product-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+    
+    .product-card {
+        padding: 1rem !important;
+    }
+    
+    .product-card .product-image {
+        height: 150px !important;
+    }
+    
+    .product-preview-modal {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+    }
+    
+    .selected-product-summary {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        max-width: none !important;
+        border-radius: 1rem 1rem 0 0 !important;
+        box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Navigation Mobile */
+    .wizard-navigation {
+        flex-direction: column-reverse;
+        gap: 1rem;
+    }
+    
+    .wizard-navigation button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Tables Mobile */
+    .mobile-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .mobile-table {
+        min-width: 600px;
+    }
+    
+    /* Cards Mobile */
+    .mobile-card-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .mobile-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Forms Mobile */
+    .mobile-form {
+        padding: 1rem;
+    }
+    
+    .mobile-form .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .mobile-form input,
+    .mobile-form select,
+    .mobile-form textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Buttons Mobile */
+    .mobile-button {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        min-height: 44px; /* Touch target size */
+    }
+    
+    .mobile-button-small {
+        min-height: 36px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Notifications Mobile */
+    .mobile-notification {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        z-index: 50;
+    }
+    
+    /* Modals Mobile */
+    .mobile-modal {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+        border-radius: 1rem;
+    }
+    
+    .mobile-modal-content {
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+    }
+}
+
+/* Tablet Styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .admin-orders-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .admin-stats-cards {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .user-stats-cards {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .bulk-actions-bar {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .filter-search-bar {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+}
+
+/* Touch-Optimized Interactions */
+@media (hover: none) and (pointer: coarse) {
+    .product-card:hover {
+        transform: none;
+    }
+    
+    .admin-order-card:hover {
+        transform: none;
+    }
+    
+    .btn-hover:hover {
+        transform: none;
+    }
+    
+    /* Add active states for touch */
+    .product-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+    
+    .admin-order-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+    
+    .btn-touch:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .product-image img,
+    .admin-order-image img {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Dark Mode Support (if implemented) */
+@media (prefers-color-scheme: dark) {
+    .mobile-card {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .mobile-notification {
+        background: #1f2937;
+        color: #f9fafb;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .product-card,
+    .admin-order-card,
+    .btn-hover,
+    .notification-enter {
+        transition: none;
+        animation: none;
+    }
+    
+    .animate-fade-in,
+    .animate-slide-in-up {
+        animation: none;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .admin-orders-grid,
+    .user-orders-table {
+        display: block !important;
+    }
+    
+    .product-card,
+    .admin-order-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}
+
+/* Landscape Mobile */
+@media (max-width: 640px) and (orientation: landscape) {
+    .wizard-progress-mobile {
+        margin-bottom: 1rem;
+    }
+    
+    .product-card .product-image {
+        height: 100px !important;
+    }
+    
+    .selected-product-summary {
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        max-width: 300px !important;
+        margin: 1rem auto !important;
+    }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 380px) {
+    .admin-stats-cards,
+    .user-stats-cards {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .filter-buttons {
+        flex-direction: column;
+    }
+    
+    .filter-btn {
+        width: 100%;
+    }
+    
+    .mobile-button {
+        font-size: 0.875rem;
+        padding: 0.625rem 0.875rem;
+    }
+    
+    .product-card h4 {
+        font-size: 1rem;
+    }
+    
+    .product-card .text-2xl {
+        font-size: 1.25rem;
+    }
+}
+
+/* iOS Safari Specific Fixes */
+@supports (-webkit-touch-callout: none) {
+    .mobile-form input,
+    .mobile-form select,
+    .mobile-form textarea {
+        -webkit-appearance: none;
+        border-radius: 0;
+    }
+    
+    .mobile-button {
+        -webkit-appearance: none;
+        -webkit-user-select: none;
+    }
+}
+
+/* Android Chrome Specific Fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) and (min-resolution: .001dpcm) {
+    .mobile-form input:focus,
+    .mobile-form select:focus,
+    .mobile-form textarea:focus {
+        outline: none;
+        border-color: #9333ea;
+    }
+}
+
+/* Accessibility Improvements */
+@media (prefers-contrast: high) {
+    .product-card,
+    .admin-order-card,
+    .mobile-card {
+        border: 2px solid currentColor;
+    }
+    
+    .btn-hover:hover,
+    .btn-touch:hover {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+    }
+}
+
+/* Large Mobile Devices */
+@media (min-width: 414px) and (max-width: 640px) {
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .admin-orders-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}

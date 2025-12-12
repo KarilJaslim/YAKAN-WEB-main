@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\CustomOrder;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
@@ -136,6 +138,37 @@ class PaymentController extends Controller
                 'amount' => $order->final_price,
                 'paid_at' => $order->paid_at,
                 'updated_at' => $order->updated_at
+            ],
+        ]);
+    }
+
+    /**
+     * Upload payment proof for a regular order (mobile/web)
+     */
+    public function uploadProof(Request $request)
+    {
+        $validated = $request->validate([
+            'order_id' => 'required|exists:orders,id',
+            'proof_image' => 'required|file|mimes:jpeg,png,jpg,webp|max:5120', // 5MB
+        ]);
+
+        $order = Order::findOrFail($validated['order_id']);
+
+        // Store proof under storage/app/public/payment_proofs
+        $path = $request->file('proof_image')->store('payment_proofs', 'public');
+        $url = asset('storage/' . $path);
+
+        $order->payment_proof_path = $url;
+        $order->payment_status = 'paid';
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment proof uploaded',
+            'data' => [
+                'order_id' => $order->id,
+                'payment_status' => $order->payment_status,
+                'payment_proof_url' => $url,
             ],
         ]);
     }

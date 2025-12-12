@@ -5,14 +5,14 @@
 @section('content')
 <div class="space-y-6">
     <!-- User Management Header -->
-    <div class="bg-gradient-to-r from-maroon-700 to-maroon-900 rounded-2xl p-8 text-white shadow-xl">
+    <div class="bg-[#800000] rounded-2xl p-8 text-white shadow-xl">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
                 <h1 class="text-3xl font-bold mb-2">User Management</h1>
                 <p class="text-maroon-100 text-lg">Manage system users and their permissions</p>
             </div>
             <div class="mt-4 md:mt-0 flex space-x-3">
-                <a href="{{ route('admin.users.create') }}" class="bg-white text-maroon-700 rounded-lg px-4 py-2 hover:bg-maroon-50 transition-colors font-semibold">
+                <a href="{{ route('admin.users.create') }}" class="bg-white text-[#800000] rounded-lg px-4 py-2 hover:bg-gray-100 transition-colors font-semibold">
                     <i class="fas fa-user-plus mr-2"></i>Add New User
                 </a>
                 <button onclick="exportUsers()" class="bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg px-4 py-2 hover:bg-white/30 transition-colors">
@@ -40,10 +40,10 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 font-medium">Active Users</p>
-                    <p class="text-2xl font-bold text-green-600">{{ $users->where('status', 'active')->count() }}</p>
+                    <p class="text-2xl font-bold text-[#800000]">{{ $users->where('status', 'active')->count() }}</p>
                 </div>
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-user-check text-green-600 text-xl"></i>
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user-check text-[#800000] text-xl"></i>
                 </div>
             </div>
         </div>
@@ -64,10 +64,10 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600 font-medium">Inactive Users</p>
-                    <p class="text-2xl font-bold text-red-600">{{ $users->where('status', 'inactive')->count() }}</p>
+                    <p class="text-2xl font-bold text-[#800000]">{{ $users->where('status', 'inactive')->count() }}</p>
                 </div>
                 <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-user-times text-red-600 text-xl"></i>
+                    <i class="fas fa-user-times text-[#800000] text-xl"></i>
                 </div>
             </div>
         </div>
@@ -127,8 +127,8 @@
 
     <!-- Success Message -->
     @if(session('success'))
-        <div class="bg-green-50 border border-green-200 text-green-800 px-6 py-4 rounded-lg flex items-center">
-            <i class="fas fa-check-circle text-green-600 mr-3"></i>
+        <div class="bg-red-50 border border-red-200 text-[#800000] px-6 py-4 rounded-lg flex items-center">
+            <i class="fas fa-check-circle text-[#800000] mr-3"></i>
             {{ session('success') }}
         </div>
     @endif
@@ -172,8 +172,8 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $user->status == 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                        <span class="w-2 h-2 mr-1 rounded-full {{ $user->status == 'active' ? 'bg-green-400' : 'bg-red-400' }}"></span>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{ $user->status == 'active' ? 'bg-red-100 text-[#800000]' : 'bg-red-100 text-[#800000]' }}">
+                                        <span class="w-2 h-2 mr-1 rounded-full {{ $user->status == 'active' ? 'bg-[#800000]' : 'bg-[#800000]' }}"></span>
                                         {{ ucfirst($user->status) }}
                                     </span>
                                 </td>
@@ -186,14 +186,14 @@
                                         <a href="{{ route('admin.users.show', $user->id) }}" class="text-maroon-600 hover:text-maroon-900 transition-colors">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('admin.users.edit', $user->id) }}" class="text-blue-600 hover:text-blue-900 transition-colors">
+                                        <a href="{{ route('admin.users.edit', $user->id) }}" class="text-[#800000] hover:text-[#600000] transition-colors">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         @if($user->id != auth()->guard('admin')->id())
                                             <form method="POST" action="{{ route('admin.users.destroy', $user->id) }}" class="inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900 transition-colors" onclick="return confirm('Are you sure you want to delete this user?')">
+                                                <button type="submit" class="text-[#800000] hover:text-[#600000] transition-colors" onclick="return confirm('Are you sure you want to delete this user?')">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>

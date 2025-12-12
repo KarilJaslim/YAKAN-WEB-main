@@ -5,7 +5,7 @@
 @push('styles')
 <style>
     .heritage-hero {
-        background: linear-gradient(135deg, #92400e 0%, #78350f 100%);
+        background: #800000;
         position: relative;
         overflow: hidden;
     }
@@ -59,12 +59,12 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex items-center justify-center space-x-4 overflow-x-auto">
                 <a href="{{ route('cultural-heritage.index') }}" 
-                   class="px-4 py-2 rounded-full text-sm font-medium transition-colors {{ !request('category') ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                   class="px-4 py-2 rounded-full text-sm font-medium transition-colors {{ !request('category') ? 'bg-[#800000] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                     All
                 </a>
                 @foreach(['history', 'tradition', 'culture', 'art', 'crafts', 'language'] as $cat)
                 <a href="{{ route('cultural-heritage.index', ['category' => $cat]) }}" 
-                   class="px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ request('category') == $cat ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                   class="px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap {{ request('category') == $cat ? 'bg-[#800000] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                     {{ ucfirst($cat) }}
                 </a>
                 @endforeach
@@ -114,7 +114,7 @@
                             </span>
                         </div>
                         <a href="{{ route('cultural-heritage.show', $featured->slug) }}" 
-                           class="inline-flex items-center px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors w-fit">
+                           class="inline-flex items-center px-6 py-3 bg-[#800000] text-white rounded-lg hover:bg-[#600000] transition-colors w-fit">
                             Read Full Story
                             <i class="fas fa-arrow-right ml-2"></i>
                         </a>
@@ -174,7 +174,7 @@
                         </div>
                         
                         <a href="{{ route('cultural-heritage.show', $heritage->slug) }}" 
-                           class="block text-center px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium">
+                           class="block text-center px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#600000] transition-colors text-sm font-medium">
                             Read More
                         </a>
                     </div>
@@ -189,14 +189,14 @@
     </div>
 
     <!-- Call to Action -->
-    <div class="bg-gradient-to-r from-amber-600 to-orange-600 py-16 mt-16">
+    <div class="bg-[#800000] py-16 mt-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-3xl font-bold text-white mb-4">Explore Yakan Products</h2>
-            <p class="text-amber-100 mb-8 max-w-2xl mx-auto">
+            <p class="text-white/90 mb-8 max-w-2xl mx-auto">
                 Discover authentic Yakan crafts and support our cultural heritage
             </p>
             <a href="{{ route('products.index') }}" 
-               class="inline-flex items-center px-8 py-3 bg-white text-amber-600 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+               class="inline-flex items-center px-8 py-3 bg-white text-[#800000] rounded-lg hover:bg-gray-100 transition-colors font-medium">
                 Browse Products
                 <i class="fas fa-arrow-right ml-2"></i>
             </a>

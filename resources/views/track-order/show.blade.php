@@ -326,10 +326,12 @@
                 <div class="tracking-card p-6">
                     <h3 class="text-lg font-bold text-gray-900 mb-4">Delivery Address</h3>
                     <div class="text-sm text-gray-700">
-                        <p class="font-semibold text-gray-900">{{ $order->user->name }}</p>
-                        <p class="mt-2">{{ $order->user->email }}</p>
-                        @if($order->user->phone)
+                        <p class="font-semibold text-gray-900">{{ $order->user->name ?? $order->customer_name ?? 'Customer' }}</p>
+                        <p class="mt-2">{{ $order->user->email ?? $order->customer_email ?? 'No email' }}</p>
+                        @if($order->user && $order->user->phone)
                             <p>{{ $order->user->phone }}</p>
+                        @elseif($order->customer_phone)
+                            <p>{{ $order->customer_phone }}</p>
                         @endif
                     </div>
 

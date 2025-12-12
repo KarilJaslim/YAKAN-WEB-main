@@ -1,0 +1,13 @@
+{
+  "total_amount": 250,
+  "payment_method": "gcash",
+  "delivery_type": "delivery",
+  "delivery_address": "123 Test Street, Cotabato City",
+  "customer_notes": "Please deliver in the morning",
+  "items": [
+    {
+      "product_id": 10,
+      "quantity": 2
+    }
+  ]
+}

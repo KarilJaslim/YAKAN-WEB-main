@@ -20,7 +20,7 @@ class WishlistController extends Controller
     {
         $user = Auth::user();
         $wishlist = $user->wishlists()->default()->first() ?: $user->wishlists()->create(['name' => 'My Wishlist', 'is_default' => true]);
-        $wishlist->load(['items.item', 'items.item.media', 'items.item.category']);
+        $wishlist->load(['items.item', 'items.item.category']);
 
         return view('wishlist.index', compact('wishlist'));
     }
@@ -61,7 +61,7 @@ class WishlistController extends Controller
         $wishlist = $user->wishlists()->default()->first();
 
         if (!$wishlist) {
-            return response()->json(['success' => false, 'message' => 'Wishlist not found.']);
+            return redirect()->route('wishlist.index')->with('error', 'Wishlist not found.');
         }
 
         $item = null;
@@ -73,10 +73,10 @@ class WishlistController extends Controller
 
         if ($item && $wishlist->hasItem($item)) {
             $wishlist->removeItem($item);
-            return response()->json(['success' => true, 'message' => 'Removed from wishlist!']);
+            return redirect()->route('wishlist.index')->with('success', 'Removed from wishlist!');
         }
 
-        return response()->json(['success' => false, 'message' => 'Item not in wishlist']);
+        return redirect()->route('wishlist.index')->with('error', 'Item not in wishlist');
     }
 
     public function check(Request $request)

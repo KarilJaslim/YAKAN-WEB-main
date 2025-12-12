@@ -5,7 +5,7 @@
     <div class="max-w-4xl mx-auto">
         <!-- Success Message -->
         @if(session('success'))
-            <div class="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl">
+            <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl">
                 {{ session('success') }}
             </div>
         @endif
@@ -13,7 +13,7 @@
         <!-- Header -->
         <div class="mb-8">
             <h1 class="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                <span class="text-green-600">🏦</span>
+                <span class="text-[#800000]">🏦</span>
                 Bank Transfer Payment
             </h1>
             <p class="text-gray-600">Transfer payment to complete your order</p>
@@ -31,7 +31,7 @@
                     <div class="space-y-6">
                         <!-- Step 1 -->
                         <div class="flex gap-4">
-                            <div class="flex-shrink-0 w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold">
+                            <div class="flex-shrink-0 w-10 h-10 bg-red-100 text-[#800000] rounded-full flex items-center justify-center font-bold">
                                 1
                             </div>
                             <div class="flex-1">
@@ -42,7 +42,7 @@
 
                         <!-- Step 2 -->
                         <div class="flex gap-4">
-                            <div class="flex-shrink-0 w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold">
+                            <div class="flex-shrink-0 w-10 h-10 bg-red-100 text-[#800000] rounded-full flex items-center justify-center font-bold">
                                 2
                             </div>
                             <div class="flex-1">
@@ -53,7 +53,7 @@
 
                         <!-- Step 3 -->
                         <div class="flex gap-4">
-                            <div class="flex-shrink-0 w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center font-bold">
+                            <div class="flex-shrink-0 w-10 h-10 bg-red-100 text-[#800000] rounded-full flex items-center justify-center font-bold">
                                 3
                             </div>
                             <div class="flex-1">
@@ -65,9 +65,9 @@
                 </div>
 
                 <!-- Bank Details Card -->
-                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-lg p-6 border-2 border-green-200">
+                <div class="bg-red-50 rounded-2xl shadow-lg p-6 border-2 border-red-200">
                     <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="w-6 h-6 text-[#800000]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                         </svg>
                         Bank Account Details
@@ -88,7 +88,7 @@
                         </div>
                         <div class="bg-white rounded-xl p-4">
                             <div class="text-sm text-gray-600 mb-1">Amount to Transfer</div>
-                            <div class="font-bold text-green-600 text-2xl">₱{{ number_format($order->total_amount, 2) }}</div>
+                            <div class="font-bold text-[#800000] text-2xl">₱{{ number_format($order->total_amount, 2) }}</div>
                         </div>
                     </div>
                 </div>
@@ -105,12 +105,12 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Payment Receipt</label>
                             <input type="file" name="receipt" accept="image/*" required
-                                   class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                   class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl focus:ring-2 focus:ring-[#800000] focus:border-[#800000]">
                             <p class="mt-2 text-xs text-gray-500">Upload a clear image of your payment receipt or bank transfer confirmation.</p>
                         </div>
 
                         <button type="submit" 
-                                class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold">
+                                class="w-full bg-[#800000] text-white px-6 py-4 rounded-xl hover:bg-[#600000] transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl font-semibold">
                             Submit Proof of Payment
                         </button>
                     </form>
@@ -138,7 +138,7 @@
                     <div class="border-t border-gray-200 pt-4">
                         <div class="flex justify-between items-center">
                             <span class="text-lg font-semibold text-gray-900">Total</span>
-                            <span class="text-2xl font-bold text-green-600">₱{{ number_format($order->total_amount, 2) }}</span>
+                            <span class="text-2xl font-bold text-[#800000]">₱{{ number_format($order->total_amount, 2) }}</span>
                         </div>
                     </div>
 
@@ -160,8 +160,8 @@
 
                     <!-- Note -->
                     <div class="mt-6 pt-6 border-t border-gray-200">
-                        <div class="bg-blue-50 rounded-lg p-3">
-                            <p class="text-xs text-blue-800">
+                        <div class="bg-red-50 rounded-lg p-3">
+                            <p class="text-xs text-[#800000]">
                                 <span class="font-semibold">Note:</span> Your order will be processed once we verify your payment. This usually takes 1-2 business days.
                             </p>
                         </div>

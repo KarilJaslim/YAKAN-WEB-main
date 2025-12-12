@@ -484,14 +484,14 @@
                    'translate-x-0': sidebarOpen || window.innerWidth >= 768
                }">
             <!-- Logo/Brand Section -->
-            <div class="sidebar-logo p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
+            <div class="sidebar-logo p-6 border-b border-gray-200 bg-[#800000]">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm flex-shrink-0">
                         <i class="fas fa-store text-white text-xl"></i>
                     </div>
                     <div class="sidebar-logo-text">
                         <h1 class="text-xl font-bold text-white">Yakan Admin</h1>
-                        <p class="text-xs text-blue-100">E-commerce Platform</p>
+                        <p class="text-xs text-white/80">E-commerce Platform</p>
                     </div>
                 </div>
             </div>

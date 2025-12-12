@@ -5,7 +5,7 @@
 @section('content')
 <div class="space-y-6">
     <!-- Create Order Header -->
-    <div class="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-8 text-white shadow-xl">
+    <div class="bg-[#800000] rounded-2xl p-8 text-white shadow-xl">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
                 <h1 class="text-3xl font-bold mb-2">Create New Order</h1>

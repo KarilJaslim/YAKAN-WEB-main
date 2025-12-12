@@ -495,13 +495,22 @@
                 </div>
 
                 <!-- Desktop Navigation -->
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="{{ route('welcome') }}" class="nav-link">Home</a>
-                    <a href="{{ route('products.index') }}" class="nav-link">Products</a>
-                    <a href="{{ route('custom_orders.index') }}" class="nav-link">Custom Orders</a>
-                    <a href="{{ route('cultural-heritage.index') }}" class="nav-link">Cultural Heritage</a>
-                    <a href="{{ route('track-order.index') }}" class="nav-link">Track Order</a>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="{{ route('welcome') }}" class="nav-link whitespace-nowrap">Home</a>
+                    <a href="{{ route('products.index') }}" class="nav-link whitespace-nowrap">Products</a>
+                    <a href="{{ route('custom_orders.index') }}" class="nav-link whitespace-nowrap">Custom Orders</a>
+                    <a href="{{ route('cultural-heritage.index') }}" class="nav-link whitespace-nowrap">Cultural Heritage</a>
+                    <a href="{{ route('track-order.index') }}" class="nav-link whitespace-nowrap">Track Order</a>
                 </div>
+
+                <!-- Wishlist Icon -->
+                @auth
+                    <a href="{{ route('wishlist.index') }}" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="My Wishlist">
+                        <svg class="w-6 h-6 text-gray-700 hover:text-red-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </a>
+                @endauth
 
                 <!-- Right Side Actions -->
                 <div class="flex items-center space-x-4">
@@ -551,6 +560,7 @@
                                     <p class="text-xs text-gray-500">{{ auth()->user()->email }}</p>
                                 </div>
                                 <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="{{ route('wishlist.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Wishlist</a>
                                 <a href="{{ route('orders.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Orders</a>
                                 @if(auth()->user()->role === 'admin')
                                     <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Admin Dashboard</a>
@@ -606,6 +616,9 @@
                     <a href="{{ route('custom_orders.index') }}" class="nav-link">Custom Orders</a>
                     <a href="{{ route('cultural-heritage.index') }}" class="nav-link">Cultural Heritage</a>
                     <a href="{{ route('track-order.index') }}" class="nav-link">Track Order</a>
+                    @auth
+                        <a href="{{ route('wishlist.index') }}" class="nav-link">Wishlist</a>
+                    @endauth
                     @guest
                         <a href="{{ route('login') }}" class="nav-link">Login</a>
                         <a href="{{ route('register') }}" class="nav-link">Sign Up</a>

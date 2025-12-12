@@ -22,7 +22,7 @@ class WishlistController extends Controller
         $wishlist = $user->wishlists()->default()->first() ?: 
                    $user->wishlists()->create(['name' => 'My Wishlist', 'is_default' => true]);
         
-        $wishlist->load(['items.item', 'items.item.media', 'items.item.category']);
+        $wishlist->load(['items.item', 'items.item.category']);
 
         // Apply filters if requested
         if ($request->type) {

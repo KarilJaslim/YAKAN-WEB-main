@@ -11,39 +11,76 @@ class OrderController extends Controller
     {
         try {
             $validated = $request->validate([
-                'customer_name' => 'required|string',
+                'customer_name' => 'required|string|max:255',
                 'customer_email' => 'nullable|email',
-                'customer_phone' => 'required|string',
+                'customer_phone' => 'required|string|max:20',
                 'shipping_address' => 'required|string',
-                'payment_method' => 'required|string',
-                'payment_status' => 'required|string',
-                'items' => 'required|array',
-                'subtotal' => 'required|numeric',
-                'shipping_fee' => 'required|numeric',
-                'total' => 'required|numeric',
+                'delivery_address' => 'required|string',
+                'payment_method' => 'required|string|in:gcash,bank_transfer,cash',
+                'payment_status' => 'nullable|string|in:pending,paid,verified,failed',
+                'payment_reference' => 'nullable|string',
+                'subtotal' => 'required|numeric|min:0',
+                'shipping_fee' => 'nullable|numeric|min:0',
+                'discount' => 'nullable|numeric|min:0',
+                'total' => 'required|numeric|min:0',
+                'total_amount' => 'nullable|numeric|min:0',
+                'delivery_type' => 'nullable|string|in:pickup,delivery',
                 'notes' => 'nullable|string',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|integer|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.price' => 'required|numeric|min:0',
+                'gcash_receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+                'bank_receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             ]);
 
+            // Handle receipt file uploads
+            $gcashReceiptPath = null;
+            $bankReceiptPath = null;
+
+            if ($request->hasFile('gcash_receipt')) {
+                $gcashReceiptPath = $request->file('gcash_receipt')->store('receipts', 'public');
+            }
+
+            if ($request->hasFile('bank_receipt')) {
+                $bankReceiptPath = $request->file('bank_receipt')->store('receipts', 'public');
+            }
+
+            $isPrepaid = in_array($validated['payment_method'], ['gcash', 'bank_transfer']);
+            $paymentStatus = ($validated['payment_status'] ?? null) === 'paid'
+                ? 'paid'
+                : ($isPrepaid ? 'paid' : ($validated['payment_status'] ?? 'pending'));
+            
+            // If payment is paid (from mobile), set status to processing immediately
+            $orderStatus = $paymentStatus === 'paid' ? 'processing' : 'pending';
+
+            $orderRef = 'ORD-' . strtoupper(uniqid());
+
             $order = Order::create([
-                'user_id' => null,
+                'order_ref' => $orderRef,
+                'tracking_number' => $orderRef,
                 'customer_name' => $validated['customer_name'],
                 'customer_email' => $validated['customer_email'] ?? 'mobile@user.com',
                 'customer_phone' => $validated['customer_phone'],
                 'shipping_address' => $validated['shipping_address'],
+                'delivery_address' => $validated['delivery_address'],
                 'payment_method' => $validated['payment_method'],
-                'payment_status' => $validated['payment_status'],
-                'status' => 'pending',
+                'payment_status' => $paymentStatus,
+                'payment_reference' => $validated['payment_reference'] ?? null,
                 'subtotal' => $validated['subtotal'],
-                'shipping_fee' => $validated['shipping_fee'],
-                'total' => $validated['total'],
-                'notes' => $validated['notes'] ?? '',
+                'shipping_fee' => $validated['shipping_fee'] ?? 0,
+                'discount' => $validated['discount'] ?? 0,
+                'total_amount' => $validated['total'] ?? $validated['total_amount'],
+                'delivery_type' => $validated['delivery_type'] ?? 'delivery',
+                'status' => $orderStatus,
+                'notes' => $validated['notes'] ?? null,
                 'source' => 'mobile',
-                'device_id' => 'mobile-app',
+                'gcash_receipt' => $gcashReceiptPath,
+                'bank_receipt' => $bankReceiptPath,
             ]);
 
-            // Create order items
             foreach ($validated['items'] as $item) {
-                $order->orderItems()->create([
+                $order->items()->create([
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
@@ -52,7 +89,7 @@ class OrderController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $order->load('orderItems'),
+                'data' => $order->load('items'),
                 'message' => 'Order created successfully'
             ], 201);
         } catch (\Exception $e) {
@@ -61,5 +98,113 @@ class OrderController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function index()
+    {
+        $orders = Order::with('items')->latest()->get();
+        return response()->json([
+            'success' => true,
+            'data' => $orders,
+            'message' => 'Orders fetched successfully'
+        ]);
+    }
+
+    public function show($id)
+    {
+        $order = Order::with('items')->find($id);
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $order,
+            'message' => 'Order fetched successfully'
+        ]);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $order = Order::find($id);
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,confirmed,shipped,delivered,cancelled'
+        ]);
+
+        $order->update(['status' => $validated['status']]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $order,
+            'message' => 'Order status updated successfully'
+        ]);
+    }
+
+    public function uploadReceipt(Request $request, $id)
+    {
+        $order = Order::find($id);
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+
+        $request->validate([
+            'gcash_receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+            'bank_receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+        ]);
+
+        $updateData = [];
+
+        if ($request->hasFile('gcash_receipt')) {
+            $updateData['gcash_receipt'] = $request->file('gcash_receipt')->store('receipts', 'public');
+        }
+
+        if ($request->hasFile('bank_receipt')) {
+            $updateData['bank_receipt'] = $request->file('bank_receipt')->store('receipts', 'public');
+        }
+
+        if (!empty($updateData)) {
+            // Update payment status to paid when receipt is uploaded
+            $updateData['payment_status'] = 'paid';
+            $updateData['status'] = 'processing';
+            
+            $order->update($updateData);
+
+            return response()->json([
+                'success' => true,
+                'data' => $order->fresh(),
+                'message' => 'Receipt uploaded successfully'
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No receipt file provided'
+        ], 400);
+    }
+
+    public function adminIndex()
+    {
+        $orders = Order::with('items', 'user')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $orders,
+            'message' => 'Admin orders fetched successfully'
+        ]);
     }
 }

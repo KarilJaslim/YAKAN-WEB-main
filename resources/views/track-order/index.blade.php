@@ -275,11 +275,15 @@
                                    class="block w-full text-center px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#600000] transition-colors font-semibold">
                                     View Order
                                 </a>
-                            @else
+                            @elseif($order->tracking_number)
                                 <a href="{{ route('track-order.show', $order->tracking_number) }}" 
                                    class="block w-full text-center px-4 py-2 bg-[#800000] text-white rounded-lg hover:bg-[#600000] transition-colors font-semibold">
                                     Track This Order
                                 </a>
+                            @else
+                                <span class="block w-full text-center px-4 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold">
+                                    No Tracking Yet
+                                </span>
                             @endif
                         </div>
                     </div>

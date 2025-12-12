@@ -663,17 +663,17 @@
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span class="text-sm font-bold text-white">{{ strtoupper(substr($order->user->name ?? 'G', 0, 1)) }}</span>
+                                    <span class="text-sm font-bold text-white">{{ strtoupper(substr($order->user->name ?? $order->customer_name ?? 'G', 0, 1)) }}</span>
                                 </div>
                                 <div class="min-w-0">
                                     <div class="text-sm font-medium text-gray-900 truncate">
-                                        {{ $order->user->name ?? 'Guest User' }}
+                                        {{ $order->user->name ?? $order->customer_name ?? 'Guest User' }}
                                     </div>
-                                    <div class="text-sm text-gray-500 truncate">{{ $order->user->email ?? 'No email' }}</div>
-                                    @if($order->user && $order->user->phone)
+                                    <div class="text-sm text-gray-500 truncate">{{ $order->user->email ?? $order->customer_email ?? 'No email' }}</div>
+                                    @if(($order->user && $order->user->phone) || $order->customer_phone)
                                         <div class="text-xs text-gray-400 flex items-center gap-1">
                                             <i class="fas fa-phone text-xs"></i>
-                                            {{ $order->user->phone }}
+                                            {{ $order->user->phone ?? $order->customer_phone }}
                                         </div>
                                     @endif
                                 </div>
@@ -766,6 +766,14 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div>{{ $order->created_at->format('M j, Y') }}</div>
                             <div class="text-xs text-gray-400">{{ $order->created_at->diffForHumans() }}</div>
+                            @if($order->source === 'mobile')
+                                <div class="inline-flex items-center px-2 py-1 mt-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z"/>
+                                    </svg>
+                                    Mobile App
+                                </div>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-2">

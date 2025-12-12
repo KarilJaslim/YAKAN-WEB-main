@@ -38,7 +38,6 @@ class OrderController extends Controller
                 'customer_email' => 'nullable|email',
                 'customer_phone' => 'required|string|max:20',
                 'shipping_address' => 'required|string',
-                'delivery_address' => 'nullable|string',
                 'shipping_city' => 'nullable|string',
                 'shipping_province' => 'nullable|string',
                 'payment_method' => 'required|in:gcash,bank_transfer,cash',
@@ -60,15 +59,12 @@ class OrderController extends Controller
             DB::beginTransaction();
 
             try {
-                // Create order with generated references
+                // Create order
                 $order = Order::create([
-                    'order_ref' => $this->generateOrderRef(),
-                    'tracking_number' => $this->generateTrackingNumber(),
                     'customer_name' => $validated['customer_name'],
                     'customer_email' => $validated['customer_email'] ?? null,
                     'customer_phone' => $validated['customer_phone'],
                     'shipping_address' => $validated['shipping_address'],
-                    'delivery_address' => $validated['delivery_address'] ?? $validated['shipping_address'],
                     'shipping_city' => $validated['shipping_city'] ?? null,
                     'shipping_province' => $validated['shipping_province'] ?? null,
                     'payment_method' => $validated['payment_method'],
@@ -77,8 +73,7 @@ class OrderController extends Controller
                     'subtotal' => $validated['subtotal'],
                     'shipping_fee' => $validated['shipping_fee'] ?? 0,
                     'discount' => $validated['discount'] ?? 0,
-                    'total' => $validated['total'] ?? $validated['total_amount'],
-                    'total_amount' => $validated['total_amount'] ?? $validated['total'],
+                    'total_amount' => $validated['total'] ?? $validated['total_amount'],
                     'delivery_type' => $validated['delivery_type'] ?? 'deliver',
                     'status' => 'pending_confirmation',
                     'notes' => $validated['notes'] ?? null,
@@ -105,9 +100,8 @@ class OrderController extends Controller
                 Log::info('Order created from mobile', [
                     'order_id' => $order->id,
                     'order_ref' => $order->order_ref,
-                    'tracking_number' => $order->tracking_number,
                     'customer' => $order->customer_name,
-                    'total' => $order->total ?? $order->total_amount,
+                    'total' => $order->total,
                 ]);
 
                 return response()->json([
@@ -190,48 +184,29 @@ class OrderController extends Controller
      * Get single order with items
      * 
      * GET /api/v1/orders/{id}
-     * GET /orders/{id} (web)
      */
-    public function show($id)
+    public function show($id): JsonResponse
     {
         try {
             $order = Order::with('items')->find($id);
 
             if (!$order) {
-                // Check if this is an API request
-                if (request()->is('api/*') || request()->expectsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Order not found',
-                    ], 404);
-                }
-                
-                // Web request
-                abort(404, 'Order not found');
-            }
-
-            // Check if this is an API request
-            if (request()->is('api/*') || request()->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'data' => $this->formatOrder($order),
-                ]);
-            }
-
-            // Web request - return view
-            return view('orders.show', compact('order'));
-            
-        } catch (\Exception $e) {
-            Log::error('Error fetching order', ['error' => $e->getMessage()]);
-            
-            if (request()->is('api/*') || request()->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to fetch order',
-                ], 500);
+                    'message' => 'Order not found',
+                ], 404);
             }
-            
-            abort(500, 'Failed to fetch order');
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->formatOrder($order),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching order', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch order',
+            ], 500);
         }
     }
 
@@ -358,25 +333,6 @@ class OrderController extends Controller
     }
 
     /**
-     * Generate a unique order reference (e.g., ORD-YYYYMMDD-XYZ)
-     */
-    private function generateOrderRef(): string
-    {
-        $prefix = 'ORD-' . now()->format('Ymd') . '-';
-        $count = Order::whereDate('created_at', today())->count() + 1;
-        return sprintf('%s%03d', $prefix, $count);
-    }
-
-    /**
-     * Generate a tracking number; fallback to order ref when not set
-     */
-    private function generateTrackingNumber(): string
-    {
-        $unique = strtoupper(bin2hex(random_bytes(4)));
-        return 'TRK-' . now()->format('Ymd') . '-' . $unique;
-    }
-
-    /**
      * Format order data for API response
      */
     private function formatOrder(Order $order): array
@@ -388,19 +344,16 @@ class OrderController extends Controller
             'customerEmail' => $order->customer_email,
             'customerPhone' => $order->customer_phone,
             'shippingAddress' => $order->shipping_address,
-            'deliveryAddress' => $order->delivery_address,
             'shippingCity' => $order->shipping_city,
             'shippingProvince' => $order->shipping_province,
             'subtotal' => (float) $order->subtotal,
             'shippingFee' => (float) $order->shipping_fee,
             'discount' => (float) $order->discount,
-            'total' => (float) ($order->total ?? $order->total_amount ?? 0),
+            'total' => (float) $order->total,
             'deliveryType' => $order->delivery_type,
-            'trackingNumber' => $order->tracking_number,
             'paymentMethod' => $order->payment_method,
             'paymentStatus' => $order->payment_status,
             'paymentReference' => $order->payment_reference,
-            'paymentProof' => $order->payment_proof_path,
             'status' => $order->status,
             'statusLabel' => $order->status_label,
             'notes' => $order->notes,
@@ -437,3 +390,4 @@ class OrderController extends Controller
         // }
     }
 }
+

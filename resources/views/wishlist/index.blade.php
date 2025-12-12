@@ -55,11 +55,10 @@
                                 </div>
                                 <div class="mt-3 flex gap-2">
                                     <a href="{{ route('products.show', $entity) }}" class="flex-1 text-center px-3 py-1 bg-maroon-600 text-white text-sm rounded-lg hover:bg-maroon-700 transition-colors">View</a>
-                                    <form action="{{ route('cart.add') }}" method="POST">
+                                    <form action="{{ route('cart.add', $entity) }}" method="POST" class="flex-1">
                                         @csrf
-                                        <input type="hidden" name="product_id" value="{{ $entity->id }}" />
                                         <input type="hidden" name="quantity" value="1" />
-                                        <button type="submit" class="flex-1 px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">Add to Cart</button>
+                                        <button type="submit" class="w-full px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">Add to Cart</button>
                                     </form>
                                 </div>
                             </div>

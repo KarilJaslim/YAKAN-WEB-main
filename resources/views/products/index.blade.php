@@ -270,7 +270,7 @@
     <section class="products-hero py-16 relative">
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center animate-fade-in-up">
-                <h1 class="text-5xl lg:text-6xl font-bold text-gradient mb-6">Premium Products</h1>
+                <h1 class="text-5xl lg:text-6xl font-bold text-white mb-6">Premium Products</h1>
                 <p class="text-xl text-white max-w-3xl mx-auto">
                     Discover our carefully curated collection of high-quality products. From everyday essentials to unique finds, we have something for everyone.
                 </p>
@@ -440,14 +440,60 @@
 <script>
 // Product interaction functions
 function toggleWishlist(productId) {
-    // Toggle wishlist functionality
-    console.log('Toggle wishlist for product:', productId);
+    event.stopPropagation();
     
-    // Add visual feedback
     const button = event.target.closest('button');
-    button.style.color = button.style.color === 'rgb(128, 0, 0)' ? '' : '#800000';
+    button.disabled = true;
     
-    // Here you would typically make an AJAX call to your wishlist endpoint
+    const action = button.classList.contains('in-wishlist') ? 'remove' : 'add';
+    const route = action === 'add' ? '{{ route("wishlist.add") }}' : '{{ route("wishlist.remove") }}';
+    
+    fetch(route, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            type: 'product',
+            id: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (action === 'add') {
+                button.classList.add('in-wishlist');
+                button.style.color = '#800000';
+            } else {
+                button.classList.remove('in-wishlist');
+                button.style.color = '';
+            }
+            showNotification(data.message);
+        } else {
+            showNotification(data.message || 'Error occurred', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating wishlist:', error);
+        showNotification('Error updating wishlist', 'error');
+    })
+    .finally(() => {
+        button.disabled = false;
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 function quickAddToCart(productId) {

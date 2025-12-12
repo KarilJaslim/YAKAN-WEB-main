@@ -1,77 +1,162 @@
 <?php
 
+/**
+ * Order Model
+ * 
+ * Represents an order placed from mobile app
+ */
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'user_id',
-        'total_amount',
-        'discount_amount',
-        'coupon_id',
-        'coupon_code',
-        'status',
-        'payment_status',
-        'payment_method',
-        'bank_receipt',
-        'gcash_receipt',
-        'delivery_type',
+        'order_ref',
         'tracking_number',
-        'tracking_status',
-        'tracking_history',
+        'user_id',
+        'customer_name',
+        'customer_email',
+        'customer_phone',
+        'subtotal',
+        'shipping_fee',
+        'discount',
+        'total',
+        'total_amount',
+        'delivery_type',
+        'shipping_address',
         'delivery_address',
-        'delivery_latitude',
-        'delivery_longitude',
-        'source',
-        'device_id',
-        'customer_notes',
+        'shipping_city',
+        'shipping_province',
+        'payment_method',
+        'payment_status',
+        'payment_reference',
+        'payment_proof_path',
+        'payment_verified_at',
+        'gcash_receipt',
+        'bank_receipt',
+        'status',
+        'notes',
         'admin_notes',
+        'source',
+        'confirmed_at',
+        'shipped_at',
+        'delivered_at',
+        'cancelled_at',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
     protected $casts = [
+        'subtotal' => 'decimal:2',
+        'shipping_fee' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'total' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'payment_verified_at' => 'datetime',
+        'confirmed_at' => 'datetime',
+        'shipped_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'tracking_history' => 'array',
     ];
 
-    // Relationship to user
-    public function user()
+    /**
+     * Get the user who placed the order
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Relationship to order items
-    public function orderItems()
+    /**
+     * Get the order items
+     */
+    public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
+    /**
+     * Alias for items relationship (for compatibility)
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Generate unique order reference
+     */
+    public static function generateOrderRef(): string
+    {
+        $date = now()->format('Ymd');
+        $count = static::whereDate('created_at', now())->count() + 1;
+        return sprintf('ORD-%s-%03d', $date, $count);
+    }
+
+    /**
+     * Get status label
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        $labels = [
+            'pending_confirmation' => 'Pending Confirmation',
+            'confirmed' => 'Confirmed',
+            'processing' => 'Processing',
+            'shipped' => 'Shipped',
+            'delivered' => 'Delivered',
+            'cancelled' => 'Cancelled',
+            'refunded' => 'Refunded',
+        ];
+
+        return $labels[$this->status] ?? $this->status;
+    }
+
+    /**
+     * Scope to get pending orders
+     */
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending_confirmation');
+    }
+
+    /**
+     * Scope to get recent orders
+     */
+    public function scopeRecent($query)
+    {
+        return $query->orderByDesc('created_at');
+    }
+
+    /**
+     * Scope by status
+     */
+    public function scopeWithStatus($query, string $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Append a tracking event to order history
+     */
     public function appendTrackingEvent(string $status, string $date = null): void
     {
-        $history = $this->tracking_history;
-
-        if (!is_array($history)) {
-            $decoded = null;
-            if (is_string($history) && $history !== '') {
-                $decoded = json_decode($history, true);
-            }
-            $history = is_array($decoded) ? $decoded : [];
+        $history = $this->tracking_history ?? [];
+        
+        // Handle case where tracking_history is a string (not properly cast)
+        if (is_string($history)) {
+            $history = json_decode($history, true) ?? [];
         }
-
+        
         $history[] = [
             'status' => $status,
             'date' => $date ?? now()->format('Y-m-d h:i A'),
         ];
-
         $this->tracking_history = $history;
+        $this->save();
     }
 }
-

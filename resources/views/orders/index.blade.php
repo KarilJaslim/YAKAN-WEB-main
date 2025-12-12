@@ -80,11 +80,13 @@
                                                 </svg>
                                             </div>
                                             <div>
-                                                <div class="font-mono font-bold text-gray-900">{{ $order->tracking_number }}</div>
+                                                <div class="font-mono font-bold text-gray-900">{{ $order->tracking_number ?? 'N/A' }}</div>
+                                                @if($order->tracking_number)
                                                 <a href="{{ route('track-order.show', $order->tracking_number) }}" 
                                                    class="text-xs hover:underline" style="color: #800000;">
                                                     Track Order →
                                                 </a>
+                                                @endif
                                             </div>
                                         </div>
                                     </td>

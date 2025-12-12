@@ -58,7 +58,7 @@ class OrderObserver
     {
         try {
             // Load order items with products
-            $orderItems = $order->orderItems()->with('product')->get();
+            $orderItems = $order->items()->with('product')->get();
 
             if ($orderItems->isEmpty()) {
                 Log::info('No order items found for order completion', ['order_id' => $order->id]);

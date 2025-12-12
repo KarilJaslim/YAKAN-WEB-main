@@ -5,7 +5,7 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-xl">
+    <div class="bg-[#800000] rounded-2xl p-8 text-white shadow-xl">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold">Coupons Management</h1>

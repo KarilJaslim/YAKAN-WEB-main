@@ -84,6 +84,7 @@
 
                         <!-- Actions -->
                         <div class="flex gap-2">
+                            @if($order->tracking_number)
                             <a href="{{ route('track-order.show', $order->tracking_number) }}" 
                                class="px-6 py-3 text-white rounded-lg hover:opacity-90 transition-opacity font-semibold"
                                style="background-color: #800000;">
@@ -93,6 +94,7 @@
                                 </svg>
                                 Track Order
                             </a>
+                            @endif
                             @auth
                                 @if($order->user_id === auth()->id())
                                     <a href="{{ route('orders.show', $order->id) }}" 

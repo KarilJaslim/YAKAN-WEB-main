@@ -131,7 +131,7 @@
     <div class="relative z-10 p-6 space-y-8">
         <!-- Enhanced Welcome Header -->
         <div class="animate-fade-in-up">
-            <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+            <div class="bg-[#800000] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
                 <div class="absolute inset-0 bg-black opacity-10"></div>
                 <div class="relative z-10">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">

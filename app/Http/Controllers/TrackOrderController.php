@@ -14,9 +14,10 @@ class TrackOrderController extends Controller
     public function index()
     {
         // Get recent orders that are public (for guest viewing)
-        // Show last 10 recent orders
-        $recentOrders = Order::with(['user', 'orderItems.product'])
+        // Show last 10 recent orders with tracking numbers
+        $recentOrders = Order::with(['user', 'items.product'])
                             ->where('payment_status', 'paid')
+                            ->whereNotNull('tracking_number')
                             ->latest()
                             ->limit(10)
                             ->get();
@@ -35,7 +36,7 @@ class TrackOrderController extends Controller
             'email' => 'required_if:search_type,email|email|nullable',
         ]);
 
-        $query = Order::with(['user', 'orderItems.product']);
+        $query = Order::with(['user', 'items.product']);
 
         if ($request->search_type === 'tracking_number') {
             $query->where('tracking_number', $request->search_value);
@@ -72,7 +73,7 @@ class TrackOrderController extends Controller
      */
     public function show($trackingNumber)
     {
-        $order = Order::with(['user', 'orderItems.product'])
+        $order = Order::with(['user', 'items.product'])
                      ->where('tracking_number', $trackingNumber)
                      ->firstOrFail();
 

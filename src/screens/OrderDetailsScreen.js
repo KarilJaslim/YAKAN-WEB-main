@@ -12,6 +12,30 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../constants/colors';
 import { trackingStages } from '../constants/tracking';
+import ApiService from '../services/api';
+
+const normalizeStatus = (apiStatus, paymentStatus, fallback) => {
+  const map = {
+    pending: 'pending_payment',
+    pending_payment: 'pending_payment',
+    payment_verified: 'payment_verified',
+    pending_confirmation: 'pending_confirmation',
+    confirmed: 'pending_confirmation',
+    processing: 'processing',
+    shipped: 'shipped',
+    delivered: 'delivered',
+    cancelled: 'cancelled',
+  };
+
+  let status = map[apiStatus] || apiStatus || fallback;
+
+  // If payment is already paid/verified but status is still pending-ish, push to payment_verified
+  if ((paymentStatus === 'paid' || paymentStatus === 'verified') && (!status || status === 'pending' || status === 'pending_payment' || status === 'pending_confirmation')) {
+    status = 'payment_verified';
+  }
+
+  return status || 'pending_payment';
+};
 
 const OrderDetailsScreen = ({ navigation, route }) => {
   const [order, setOrder] = useState(null);
@@ -21,12 +45,61 @@ const OrderDetailsScreen = ({ navigation, route }) => {
     loadOrderDetails();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (order?.backendOrderId || order?.id) {
+        refreshFromApi(order.backendOrderId || order.id);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, order]);
+
+  // Poll periodically while on this screen to pick up admin status changes
+  useEffect(() => {
+    if (!order?.backendOrderId && !order?.id) return;
+    const backendId = order.backendOrderId || order.id;
+    const interval = setInterval(() => {
+      refreshFromApi(backendId);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [order?.backendOrderId, order?.id]);
+
+  const refreshFromApi = async (backendId) => {
+    if (!backendId) return;
+    try {
+      const res = await ApiService.getOrder(backendId);
+      if (res?.success && res.data) {
+        // Some endpoints wrap the order inside data/order, others return the order directly
+        const apiOrder = res.data.data?.order || res.data.data || res.data;
+        setOrder((prev) => {
+          const normalizedStatus = normalizeStatus(apiOrder.status, apiOrder.payment_status, prev?.status);
+          return {
+            ...prev,
+            ...apiOrder,
+            backendOrderId: apiOrder.id || prev?.backendOrderId,
+            orderRef: apiOrder.orderRef || apiOrder.order_ref || prev?.orderRef,
+            status: normalizedStatus,
+            paymentStatus: apiOrder.payment_status || prev?.paymentStatus,
+            subtotal: apiOrder.subtotal ?? prev?.subtotal ?? 0,
+            shippingFee: apiOrder.shipping_fee ?? prev?.shippingFee ?? 0,
+            total: apiOrder.total ?? apiOrder.total_amount ?? prev?.total ?? 0,
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to refresh order from API', err?.message || err);
+    }
+  };
+
   const loadOrderDetails = async () => {
     try {
       // First, try to get from route params
       if (route.params?.orderData) {
         console.log('Order from params:', route.params.orderData);
         setOrder(route.params.orderData);
+        // Attempt to refresh from API to get latest status
+        const backendId = route.params.orderData.backendOrderId || route.params.orderData.id;
+        if (backendId) refreshFromApi(backendId);
         setLoading(false);
         return;
       }
@@ -40,6 +113,9 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           if (foundOrder) {
             console.log('Order from storage:', foundOrder);
             setOrder(foundOrder);
+            if (foundOrder.backendOrderId || foundOrder.id) {
+              refreshFromApi(foundOrder.backendOrderId || foundOrder.id);
+            }
           }
         }
       }
@@ -215,11 +291,11 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               <View key={index} style={styles.itemCard}>
                 <View style={styles.itemHeader}>
                   <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemPrice}>₱{(item.price || 0).toFixed(2)}</Text>
+                  <Text style={styles.itemPrice}>₱{(parseFloat(item.price) || 0).toFixed(2)}</Text>
                 </View>
                 <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
                 <Text style={styles.itemTotal}>
-                  Subtotal: ₱{((item.price || 0) * (item.quantity || 0)).toFixed(2)}
+                  Subtotal: ₱{((parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0)).toFixed(2)}
                 </Text>
               </View>
             ))
@@ -235,15 +311,15 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>₱{(order.subtotal || 0).toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>₱{(parseFloat(order.subtotal) || 0).toFixed(2)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
-            <Text style={styles.summaryValue}>₱{(order.shippingFee || 0).toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>₱{(parseFloat(order.shippingFee) || 0).toFixed(2)}</Text>
           </View>
           <View style={[styles.summaryRow, styles.summaryTotal]}>
             <Text style={styles.summaryTotalLabel}>Total</Text>
-            <Text style={styles.summaryTotalValue}>₱{(order.total || 0).toFixed(2)}</Text>
+            <Text style={styles.summaryTotalValue}>₱{(parseFloat(order.total) || 0).toFixed(2)}</Text>
           </View>
         </View>
 

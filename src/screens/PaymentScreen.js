@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ApiService from '../services/api';
 import NotificationService from '../services/notificationService';
 import colors from '../constants/colors';
+import * as ImagePicker from 'expo-image-picker';
 
 // Payment account details (customize these for your store)
 const PAYMENT_ACCOUNTS = {
@@ -54,6 +55,7 @@ export default function PaymentScreen({ navigation, route }) {
   const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [receiptImage, setReceiptImage] = useState(null);
 
   const paymentMethods = [
     {
@@ -97,6 +99,25 @@ export default function PaymentScreen({ navigation, route }) {
     setShowPaymentInstructions(true);
   };
 
+  const handlePickReceipt = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Gallery permission is required to upload a receipt');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setReceiptImage(result.assets[0].uri);
+    }
+  };
+
   const handleConfirmPayment = async () => {
     setIsProcessing(true);
 
@@ -128,20 +149,34 @@ export default function PaymentScreen({ navigation, route }) {
       
       console.log('🔵 Order created successfully:', response);
 
+      // Extract backend order ID from various possible response structures
+      const backendId = response.data?.data?.id || response.data?.id || response.data?.order?.id;
+      console.log('🔵 Backend order ID:', backendId);
+
       const finalOrderData = {
         ...orderData,
         paymentMethod: selectedPaymentMethod,
         paymentReference: referenceNumber,
-        status: 'paid',
-        backendOrderId: response.data?.id,
+        status: 'payment_verified', // align with timeline stage
+        backendOrderId: backendId,
+        id: backendId, // Also store as 'id' for compatibility
       };
+
+      // If user attached receipt, upload it after order is created
+      if (receiptImage && backendId) {
+        try {
+          await ApiService.uploadPaymentProof(backendId, receiptImage);
+        } catch (uploadErr) {
+          console.warn('Failed to upload receipt image', uploadErr?.message || uploadErr);
+        }
+      }
 
       await updateOrderInStorage(finalOrderData);
       
       // 🔔 Notify admin via notification service
       console.log('🔔 Triggering admin notification for new order:', finalOrderData.orderRef);
       NotificationService.notifyNewOrder({
-        orderId: response.data?.id || finalOrderData.orderRef,
+        orderId: backendId || finalOrderData.orderRef,
         orderRef: finalOrderData.orderRef,
         customerName: orderData.shippingAddress.fullName,
         customerPhone: orderData.shippingAddress.phoneNumber,
@@ -154,9 +189,9 @@ export default function PaymentScreen({ navigation, route }) {
       });
 
       // Start polling for order status updates
-      if (response.data?.id) {
+      if (backendId) {
         NotificationService.startOrderStatusPolling(
-          response.data.id,
+          backendId,
           (updatedOrder) => {
             console.log('📦 Order status updated:', updatedOrder.status);
             // Update local order data when status changes
@@ -179,7 +214,7 @@ export default function PaymentScreen({ navigation, route }) {
         ...orderData,
         paymentMethod: selectedPaymentMethod,
         paymentReference: referenceNumber,
-        status: 'paid',
+        status: 'payment_verified',
       };
       await updateOrderInStorage(finalOrderData);
       
@@ -339,6 +374,12 @@ export default function PaymentScreen({ navigation, route }) {
                   <Text style={styles.stepDescription}>
                     After sending the payment, click the button below to confirm. Your payment will be verified automatically and your order will start processing immediately!
                   </Text>
+                  <TouchableOpacity style={styles.receiptButton} onPress={handlePickReceipt}>
+                    <Text style={styles.receiptButtonText}>📎 Upload receipt image</Text>
+                  </TouchableOpacity>
+                  {receiptImage && (
+                    <Text style={styles.receiptPreview}>Attached: {receiptImage.split('/').pop()}</Text>
+                  )}
                 </View>
               </View>
             </View>
@@ -531,6 +572,16 @@ export default function PaymentScreen({ navigation, route }) {
               value={referenceNumber}
               onChangeText={setReferenceNumber}
             />
+            <Text style={styles.referenceHelper}>
+              Upload Proof of Payment *
+              {'\n'}Upload a clear screenshot or photo of your {selectedPaymentMethod === 'gcash' ? 'GCash' : 'bank'} receipt showing the transaction details, amount, and reference number.
+            </Text>
+            <TouchableOpacity style={styles.receiptButton} onPress={handlePickReceipt}>
+              <Text style={styles.receiptButtonText}>📎 Upload receipt image</Text>
+            </TouchableOpacity>
+            {receiptImage && (
+              <Text style={styles.receiptPreview}>Attached: {receiptImage.split('/').pop()}</Text>
+            )}
           </View>
 
           <View style={{ height: 100 }} />
@@ -1172,6 +1223,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 10,
   },
+  referenceHelper: {
+    fontSize: 12,
+    color: '#555',
+    lineHeight: 18,
+    marginTop: 8,
+    marginBottom: 10,
+  },
   referenceInput: {
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
@@ -1373,5 +1431,23 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  receiptButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#eef2ff',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  receiptButtonText: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  receiptPreview: {
+    marginTop: 6,
+    color: colors.textLight,
+    fontSize: 12,
   },
 });

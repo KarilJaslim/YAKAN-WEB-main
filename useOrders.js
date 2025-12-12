@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ApiService from './src/services/api';
 
 const ORDERS_KEY = 'pendingOrders';
 
@@ -14,7 +15,57 @@ export const useOrders = () => {
     try {
       const savedOrders = await AsyncStorage.getItem(ORDERS_KEY);
       const localOrders = savedOrders ? JSON.parse(savedOrders) : [];
-      setOrders(localOrders.sort((a, b) => new Date(b.date) - new Date(a.date)));
+
+      // Refresh statuses from backend when we have an order id
+      const normalizeStatus = (apiOrder, fallbackStatus) => {
+        // If payment is marked paid/verified and status is still pending, show payment_verified
+        if ((apiOrder.payment_status === 'paid' || apiOrder.payment_status === 'verified') && (!apiOrder.status || apiOrder.status === 'pending')) {
+          return 'payment_verified';
+        }
+        // Map backend statuses to mobile timeline keys
+        const map = {
+          pending: 'pending_payment',
+          pending_payment: 'pending_payment',
+          payment_verified: 'payment_verified',
+          confirmed: 'pending_confirmation',
+          processing: 'processing',
+          shipped: 'shipped',
+          delivered: 'delivered',
+          cancelled: 'cancelled',
+        };
+        return map[apiOrder.status] || fallbackStatus || 'pending_payment';
+      };
+
+      const refreshedOrders = await Promise.all(
+        localOrders.map(async (order) => {
+          if (!order.backendOrderId) return order;
+
+          try {
+            const res = await ApiService.getOrder(order.backendOrderId);
+            if (res?.success && res.data) {
+              const apiOrder = res.data;
+              const normalizedStatus = normalizeStatus(apiOrder, order.status);
+
+              return {
+                ...order,
+                status: normalizedStatus,
+                paymentStatus: apiOrder.payment_status || order.paymentStatus,
+                total: apiOrder.total_amount ?? apiOrder.total ?? order.total,
+                subtotal: apiOrder.subtotal ?? order.subtotal,
+                shippingFee: apiOrder.shipping_fee ?? order.shippingFee,
+              };
+            }
+          } catch (err) {
+            console.warn('Failed to refresh order from API', err?.message || err);
+          }
+          return order;
+        })
+      );
+
+      // Persist refreshed data
+      await AsyncStorage.setItem(ORDERS_KEY, JSON.stringify(refreshedOrders));
+
+      setOrders(refreshedOrders.sort((a, b) => new Date(b.date) - new Date(a.date)));
     } catch (error) {
       console.error('Failed to load orders from local storage:', error);
       setOrders([]);

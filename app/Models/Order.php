@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Order extends Model
 {
     protected $fillable = [
+        'order_ref',
+        'tracking_number',
         'user_id',
         'customer_name',
         'customer_email',
@@ -22,6 +24,7 @@ class Order extends Model
         'subtotal',
         'shipping_fee',
         'discount',
+        'total',
         'total_amount',
         'delivery_type',
         'shipping_address',
@@ -31,6 +34,7 @@ class Order extends Model
         'payment_method',
         'payment_status',
         'payment_reference',
+        'payment_proof_path',
         'payment_verified_at',
         'status',
         'notes',
@@ -46,6 +50,7 @@ class Order extends Model
         'subtotal' => 'decimal:2',
         'shipping_fee' => 'decimal:2',
         'discount' => 'decimal:2',
+        'total' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'payment_verified_at' => 'datetime',
         'confirmed_at' => 'datetime',

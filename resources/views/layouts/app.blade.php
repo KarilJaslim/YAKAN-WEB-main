@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"@if(request()->routeIs('chats.*')) style="background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;"@endif>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"@if(request()->routeIs('chats.*')) class="chat-page-html" style="background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;"@endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -115,13 +115,32 @@
             min-height: 100vh;
         }
 
-        /* Chat Pages Override */
+        /* Chat Pages Override - CRITICAL */
+        html.chat-page-html {
+            background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;
+        }
+
         body.chat-page {
             background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;
+            min-height: 100vh !important;
         }
 
         body.chat-page main {
             background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;
+            min-height: 100vh !important;
+        }
+
+        body.chat-page nav {
+            background: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        body.chat-page footer {
+            background: linear-gradient(135deg, #600000 0%, #400000 100%) !important;
+        }
+
+        main.chat-page-main {
+            background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;
+            min-height: 100vh !important;
         }
 
         /* Glass Morphism Effects */
@@ -460,7 +479,7 @@
         }
     </style>
 </head>
-<body class="antialiased{{ request()->routeIs('chats.*') ? ' chat-page' : '' }}"@if(request()->routeIs('chats.*')) style="background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;"@endif>
+<body class="antialiased{{ request()->routeIs('chats.*') ? ' chat-page' : '' }}"@if(request()->routeIs('chats.*')) style="background: linear-gradient(135deg, #800000 0%, #600000 100%) !important; min-height: 100vh !important;"@endif>
     <!-- Floating Background Elements -->
     @unless(request()->routeIs('chats.*'))
     <div class="floating-element floating-1"></div>
@@ -664,7 +683,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="relative z-10"@if(request()->routeIs('chats.*')) style="background: linear-gradient(135deg, #800000 0%, #600000 100%) !important;"@endif>
+    <main class="relative z-10{{ request()->routeIs('chats.*') ? ' chat-page-main' : '' }}"@if(request()->routeIs('chats.*')) style="background: linear-gradient(135deg, #800000 0%, #600000 100%) !important; min-height: 100vh !important;"@endif>
         @yield('content')
     </main>
 
@@ -902,6 +921,19 @@
         // Initialize both desktop and mobile search
         initSearchForm('searchForm', 'searchInput');
         initSearchForm('mobileSearchForm', 'mobileSearchInput');
+
+        // Ensure chat page styling is applied
+        if (window.location.pathname.includes('/chats')) {
+            document.documentElement.classList.add('chat-page-html');
+            document.body.classList.add('chat-page');
+            document.body.style.background = 'linear-gradient(135deg, #800000 0%, #600000 100%) !important';
+            document.body.style.minHeight = '100vh';
+            const main = document.querySelector('main');
+            if (main) {
+                main.style.background = 'linear-gradient(135deg, #800000 0%, #600000 100%) !important';
+                main.style.minHeight = '100vh';
+            }
+        }
     </script>
 </body>
 </html>

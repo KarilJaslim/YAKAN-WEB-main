@@ -12,22 +12,29 @@ import {
   Switch,
 } from 'react-native';
 import { useCart } from '../context/CartContext';
+import { useNotification } from '../context/NotificationContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import QuickAddressSetupScreen from './QuickAddressSetupScreen';
+import useShippingFee from '../hooks/useShippingFee';
 
 const CheckoutScreen = ({ navigation }) => {
   const { cartItems, getCartTotal, clearCart, userInfo, updateUserInfo } = useCart();
-  const [isEditCustomerModalVisible, setIsEditCustomerModalVisible] = useState(false);
-  const [editedName, setEditedName] = useState(userInfo?.name || '');
-  const [editedEmail, setEditedEmail] = useState(userInfo?.email || '');
+  const { notifyOrderCreated } = useNotification();
+  const { calculateFee, loading: shippingLoading, error: shippingError } = useShippingFee();
   
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [showQuickAddressSetup, setShowQuickAddressSetup] = useState(false);
   
   // Delivery option state: 'pickup' or 'deliver'
   const [deliveryOption, setDeliveryOption] = useState('deliver');
+  
+  // Shipping fee state
+  const [shippingFee, setShippingFee] = useState(0);
+  const [calculatingShipping, setCalculatingShipping] = useState(false);
   
   // Coupon code state
   const [showCouponInput, setShowCouponInput] = useState(false);
@@ -53,6 +60,72 @@ const CheckoutScreen = ({ navigation }) => {
     loadAddresses();
   }, []);
 
+  // Calculate shipping fee when address or delivery option changes
+  useEffect(() => {
+    if (deliveryOption === 'deliver' && selectedAddressId) {
+      calculateShippingFee();
+    } else if (deliveryOption === 'pickup') {
+      setShippingFee(0);
+    }
+  }, [selectedAddressId, deliveryOption]);
+
+  const calculateShippingFee = async () => {
+    try {
+      setCalculatingShipping(true);
+      const selectedAddr = savedAddresses.find(addr => addr.id === selectedAddressId);
+      
+      if (!selectedAddr) {
+        setShippingFee(0);
+        return;
+      }
+
+      // Get coordinates from address (if available)
+      // For now, we'll use a mapping of cities to coordinates
+      const cityCoordinates = {
+        'manila': { lat: 14.5995, lon: 120.9842 },
+        'cebu': { lat: 10.3157, lon: 123.8854 },
+        'davao': { lat: 7.1108, lon: 125.6423 },
+        'quezon city': { lat: 14.6349, lon: 121.0388 },
+        'makati': { lat: 14.5549, lon: 121.0175 },
+        'pasig': { lat: 14.5794, lon: 121.5832 },
+        'caloocan': { lat: 14.6352, lon: 120.9817 },
+        'las piñas': { lat: 14.3534, lon: 120.9234 },
+        'cavite': { lat: 14.3568, lon: 120.8853 },
+        'laguna': { lat: 14.3119, lon: 121.4944 },
+      };
+
+      const cityKey = selectedAddr.city?.toLowerCase() || '';
+      const coords = cityCoordinates[cityKey];
+
+      let result;
+      if (coords) {
+        // Use coordinates for accurate distance calculation
+        console.log('[Checkout] Sending coordinates:', coords);
+        result = await calculateFee(undefined, coords.lat, coords.lon);
+      } else {
+        // Fallback to default distance
+        console.log('[Checkout] City not found, using default distance');
+        result = await calculateFee(5);
+      }
+
+      if (result) {
+        // Convert to number in case it's a string from API
+        const fee = parseFloat(result.shipping_fee) || 50;
+        console.log('[Checkout] Calculated shipping fee:', fee, 'Distance:', result.distance_km);
+        setShippingFee(fee);
+      } else {
+        // Fallback to default fee if calculation fails
+        console.log('[Checkout] Calculation failed, using fallback fee');
+        setShippingFee(50);
+      }
+    } catch (error) {
+      console.log('Error calculating shipping:', error);
+      setShippingFee(50); // Fallback fee
+    } finally {
+      setCalculatingShipping(false);
+    }
+  };
+
   const loadAddresses = async () => {
     try {
       const addresses = await AsyncStorage.getItem('savedAddresses');
@@ -65,8 +138,15 @@ const CheckoutScreen = ({ navigation }) => {
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress.id);
         } else if (parsedAddresses.length > 0) {
+          // Auto-set first address as default if none exists
+          parsedAddresses[0].isDefault = true;
+          setSavedAddresses(parsedAddresses);
+          saveAddresses(parsedAddresses);
           setSelectedAddressId(parsedAddresses[0].id);
         }
+      } else {
+        // No addresses exist - show quick setup modal
+        setShowQuickAddressSetup(true);
       }
     } catch (error) {
       console.log('Error loading addresses:', error);
@@ -119,10 +199,10 @@ const CheckoutScreen = ({ navigation }) => {
     );
   }
 
-  const shippingFee = 5.00;
+  const shippingFeeDisplay = deliveryOption === 'pickup' ? 0 : shippingFee;
   const subtotal = getCartTotal();
   const discount = appliedCoupon ? appliedCoupon.discount : 0;
-  const total = subtotal + shippingFee - discount;
+  const total = subtotal + shippingFeeDisplay - discount;
 
   const generateOrderRef = () => {
     return 'ORD-' + Date.now().toString().slice(-8);
@@ -308,24 +388,25 @@ const CheckoutScreen = ({ navigation }) => {
     };
 
     await saveOrder(orderData);
+    notifyOrderCreated(orderRef);
     navigation.navigate('Payment', { orderData });
-  };
-
-  const handleSaveCustomerInfo = () => {
-    if (!editedName.trim() || !editedEmail.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    updateUserInfo({ name: editedName, email: editedEmail });
-    setIsEditCustomerModalVisible(false);
-    Alert.alert('Success', 'Customer information updated!');
   };
 
   const selectedAddress = savedAddresses.find(addr => addr.id === selectedAddressId);
 
+  const handleAddressSetup = async (newAddress) => {
+    setSavedAddresses([newAddress]);
+    setSelectedAddressId(newAddress.id);
+    setShowQuickAddressSetup(false);
+  };
+
   return (
     <View style={styles.container}>
+      <QuickAddressSetupScreen
+        visible={showQuickAddressSetup}
+        onAddressSet={handleAddressSetup}
+        onSkip={() => setShowQuickAddressSetup(false)}
+      />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backButton}>←</Text>
@@ -378,56 +459,13 @@ const CheckoutScreen = ({ navigation }) => {
                 <Text style={styles.deliveryOptionIcon}>🚚</Text>
                 <View>
                   <Text style={styles.deliveryOptionTitle}>Deliver</Text>
-                  <Text style={styles.deliveryOptionDesc}>Deliver to your address (+₱{shippingFee.toFixed(2)})</Text>
+                  <Text style={styles.deliveryOptionDesc}>
+                    Deliver to your address {calculatingShipping ? '(calculating...)' : `(+₱${shippingFee.toFixed(2)})`}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Customer Information Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Customer Information</Text>
-            <TouchableOpacity 
-              onPress={() => {
-                setEditedName(userInfo?.name || '');
-                setEditedEmail(userInfo?.email || '');
-                setIsEditCustomerModalVisible(true);
-              }}
-            >
-              <Text style={styles.editButton}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.customerInfoCard}>
-            <View style={styles.customerInfoRow}>
-              <View style={styles.customerInfoIconContainer}>
-                <Text style={styles.customerInfoIcon}>👤</Text>
-              </View>
-              <View style={styles.customerInfoContent}>
-                <Text style={styles.customerInfoLabel}>Full Name</Text>
-                <Text style={styles.customerInfoValue}>{userInfo?.name || 'Not set'}</Text>
-              </View>
-            </View>
-            <View style={styles.customerInfoDivider} />
-            <View style={styles.customerInfoRow}>
-              <View style={styles.customerInfoIconContainer}>
-                <Text style={styles.customerInfoIcon}>✉️</Text>
-              </View>
-              <View style={styles.customerInfoContent}>
-                <Text style={styles.customerInfoLabel}>Email Address</Text>
-                <Text style={styles.customerInfoValue}>{userInfo?.email || 'Not set'}</Text>
-              </View>
-            </View>
-          </View>
-          {(!userInfo?.name || !userInfo?.email) && (
-            <View style={styles.customerInfoWarning}>
-              <Text style={styles.customerInfoWarningIcon}>⚠️</Text>
-              <Text style={styles.customerInfoWarningText}>
-                Please complete your customer information
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Address Selection Section */}
@@ -578,54 +616,6 @@ const CheckoutScreen = ({ navigation }) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* Customer Information Edit Modal */}
-      <Modal
-        visible={isEditCustomerModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsEditCustomerModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Customer Information</Text>
-            
-            <Text style={styles.modalLabel}>Name</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter your name"
-              placeholderTextColor="#999"
-              value={editedName}
-              onChangeText={setEditedName}
-            />
-
-            <Text style={styles.modalLabel}>Email</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter your email"
-              placeholderTextColor="#999"
-              value={editedEmail}
-              onChangeText={setEditedEmail}
-              keyboardType="email-address"
-            />
-
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={() => setIsEditCustomerModalVisible(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalSaveButton}
-                onPress={handleSaveCustomerInfo}
-              >
-                <Text style={styles.modalSaveText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Address Form Modal */}
       <Modal

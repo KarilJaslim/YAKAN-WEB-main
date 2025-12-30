@@ -20,7 +20,7 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useCart();
+  const { loginWithBackend } = useCart();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -28,19 +28,32 @@ export default function LoginScreen({ navigation }) {
       return;
     }
     
+    console.log('[LoginScreen] Starting login with email:', email);
     setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
-      const userData = {
-        name: email.split('@')[0],
-        email: email,
-      };
+    try {
+      console.log('[LoginScreen] Calling loginWithBackend');
+      const result = await loginWithBackend(email, password);
+      console.log('[LoginScreen] Login result:', result);
       
-      login(userData);
+      if (result.success) {
+        console.log('[LoginScreen] Login successful, navigating to Home');
+        Alert.alert('Success', 'Login successful!', [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Home')
+          }
+        ]);
+      } else {
+        console.log('[LoginScreen] Login failed:', result.message);
+        Alert.alert('Login Failed', result.message || 'Invalid email or password');
+      }
+    } catch (error) {
+      console.error('[LoginScreen] Login error:', error);
+      Alert.alert('Error', error.message || 'An error occurred during login');
+    } finally {
       setIsLoading(false);
-      navigation.navigate('Home');
-    }, 2000);
+    }
   };
 
   return (

@@ -1,5 +1,5 @@
-// src/screens/OrderDetailsScreen.js - Fixed version
-import React, { useState, useEffect } from 'react';
+// src/screens/OrderDetailsScreen.js - Enhanced UI/UX
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../constants/colors';
 import { trackingStages } from '../constants/tracking';
 import ApiService from '../services/api';
+import useOrderNotifications from '../hooks/useOrderNotifications';
 
 const normalizeStatus = (apiStatus, paymentStatus, fallback) => {
   const map = {
@@ -40,9 +42,27 @@ const normalizeStatus = (apiStatus, paymentStatus, fallback) => {
 const OrderDetailsScreen = ({ navigation, route }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const scaleAnim = new Animated.Value(0);
+  const slideAnim = new Animated.Value(100);
+
+  // Enable order notifications
+  const orderId = order?.backendOrderId || order?.id;
+  useOrderNotifications(orderId, !!orderId);
 
   useEffect(() => {
     loadOrderDetails();
+    // Trigger animations
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   useEffect(() => {
@@ -210,31 +230,84 @@ const OrderDetailsScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Enhanced Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backButtonHeader}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Order Details</Text>
+        <Text style={styles.title}>Order Tracking</Text>
         <View style={{ width: 50 }} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Order Reference Card */}
-        <View style={styles.orderRefCard}>
-          <View>
-            <Text style={styles.orderRefLabel}>Order Reference</Text>
-            <Text style={styles.orderRefNumber}>{order.orderRef}</Text>
-            <Text style={styles.orderDate}>{formatDate(order.date)}</Text>
+        {/* Order Reference Card - Enhanced */}
+        <Animated.View 
+          style={[
+            styles.orderRefCard,
+            {
+              transform: [
+                { scale: scaleAnim },
+                { translateY: slideAnim }
+              ]
+            }
+          ]}
+        >
+          <View style={styles.orderRefContent}>
+            <View>
+              <Text style={styles.orderRefLabel}>Order Reference</Text>
+              <Text style={styles.orderRefNumber}>{order.orderRef}</Text>
+              <Text style={styles.orderDate}>{formatDate(order.date)}</Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: trackingStages[displayStageIndex].color }]}>
+              <Text style={styles.statusText}>
+                {trackingStages[displayStageIndex].label}
+              </Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: trackingStages[displayStageIndex].color }]}>
-            <Text style={styles.statusText}>
-              {trackingStages[displayStageIndex].label}
+          
+          {/* Progress Bar */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill,
+                  { 
+                    width: `${((currentStageIndex + 1) / trackingStages.length) * 100}%`,
+                    backgroundColor: trackingStages[displayStageIndex].color
+                  }
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {currentStageIndex + 1} of {trackingStages.length} steps
+            </Text>
+          </View>
+        </Animated.View>
+
+        {/* Status Summary Card */}
+        <View style={styles.statusSummaryCard}>
+          <View style={styles.statusSummaryItem}>
+            <Text style={styles.statusSummaryIcon}>📦</Text>
+            <Text style={styles.statusSummaryLabel}>Status</Text>
+            <Text style={styles.statusSummaryValue}>{trackingStages[displayStageIndex].label}</Text>
+          </View>
+          <View style={styles.statusSummaryDivider} />
+          <View style={styles.statusSummaryItem}>
+            <Text style={styles.statusSummaryIcon}>💰</Text>
+            <Text style={styles.statusSummaryLabel}>Total</Text>
+            <Text style={styles.statusSummaryValue}>₱{(parseFloat(order.total) || 0).toFixed(2)}</Text>
+          </View>
+          <View style={styles.statusSummaryDivider} />
+          <View style={styles.statusSummaryItem}>
+            <Text style={styles.statusSummaryIcon}>✓</Text>
+            <Text style={styles.statusSummaryLabel}>Payment</Text>
+            <Text style={[styles.statusSummaryValue, { color: order.paymentStatus === 'paid' ? '#22c55e' : '#f59e0b' }]}>
+              {order.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
             </Text>
           </View>
         </View>
 
-        {/* Tracking Timeline */}
+        {/* Tracking Timeline - Enhanced */}
         <View style={styles.trackingSection}>
           <Text style={styles.sectionTitle}>Order Timeline</Text>
           
@@ -255,7 +328,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                     />
                   )}
 
-                  {/* Stage Indicator */}
+                  {/* Stage Indicator - Enhanced */}
                   <View
                     style={[
                       styles.stageIndicator,
@@ -270,7 +343,7 @@ const OrderDetailsScreen = ({ navigation, route }) => {
                   </View>
 
                   {/* Stage Info */}
-                  <View style={styles.stageInfo}>
+                  <View style={[styles.stageInfo, isCurrent && styles.stageInfoCurrent]}>
                     <Text style={[styles.stageLabel, isCompleted && styles.stageLabelCompleted]}>
                       {stage.label}
                     </Text>
@@ -282,33 +355,35 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Items Summary */}
+        {/* Items Summary - Enhanced */}
         <View style={styles.itemsSection}>
-          <Text style={styles.sectionTitle}>Items</Text>
+          <Text style={styles.sectionTitle}>Items ({order.items?.length || 0})</Text>
           
           {order.items && order.items.length > 0 ? (
             order.items.map((item, index) => (
               <View key={index} style={styles.itemCard}>
                 <View style={styles.itemHeader}>
-                  <Text style={styles.itemName}>{item.name}</Text>
+                  <View style={styles.itemNumberBadge}>
+                    <Text style={styles.itemNumber}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.itemDetails}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+                  </View>
                   <Text style={styles.itemPrice}>₱{(parseFloat(item.price) || 0).toFixed(2)}</Text>
                 </View>
-                <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
-                <Text style={styles.itemTotal}>
-                  Subtotal: ₱{((parseFloat(item.price) || 0) * (parseInt(item.quantity) || 0)).toFixed(2)}
-                </Text>
               </View>
             ))
           ) : (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>No items in order</Text>
-              <Text style={styles.emptySubtext}>Order data may not have loaded correctly</Text>
             </View>
           )}
         </View>
 
-        {/* Order Summary */}
+        {/* Order Summary - Enhanced */}
         <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Order Summary</Text>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
             <Text style={styles.summaryValue}>₱{(parseFloat(order.subtotal) || 0).toFixed(2)}</Text>
@@ -323,14 +398,18 @@ const OrderDetailsScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Shipping Address */}
+        {/* Shipping Address - Enhanced */}
         {order.shippingAddress && (
           <View style={styles.addressSection}>
             <Text style={styles.sectionTitle}>Delivery Address</Text>
             <View style={styles.addressCard}>
-              <Text style={styles.addressLabel}>🏠 Delivery Address</Text>
+              <View style={styles.addressHeader}>
+                <Text style={styles.addressIcon}>📍</Text>
+                <Text style={styles.addressHeaderText}>Delivery Location</Text>
+              </View>
               <Text style={styles.addressName}>{order.shippingAddress.fullName || 'N/A'}</Text>
-              <Text style={styles.addressText}>{order.shippingAddress.phoneNumber || 'N/A'}</Text>
+              <Text style={styles.addressPhone}>{order.shippingAddress.phoneNumber || 'N/A'}</Text>
+              <View style={styles.addressDivider} />
               <Text style={styles.addressText}>
                 {order.shippingAddress.street || 'N/A'}
               </Text>
@@ -339,6 +418,64 @@ const OrderDetailsScreen = ({ navigation, route }) => {
               </Text>
             </View>
           </View>
+        )}
+
+        {/* Courier Information - Enhanced */}
+        {order.courier_name && (
+          <View style={styles.courierSection}>
+            <Text style={styles.sectionTitle}>Courier Information</Text>
+            <View style={styles.courierCard}>
+              <View style={styles.courierHeader}>
+                <Text style={styles.courierIcon}>🚚</Text>
+                <Text style={styles.courierName}>{order.courier_name}</Text>
+              </View>
+              {order.courier_contact && (
+                <View style={styles.courierDetail}>
+                  <Text style={styles.courierLabel}>Contact:</Text>
+                  <Text style={styles.courierValue}>{order.courier_contact}</Text>
+                </View>
+              )}
+              {order.courier_tracking_url && (
+                <TouchableOpacity 
+                  style={styles.courierTrackButton}
+                  onPress={() => {
+                    Alert.alert('Track on Courier', 'Opening courier tracking page...');
+                  }}
+                >
+                  <Text style={styles.courierTrackButtonText}>Track on Courier Website →</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Order Received Button - Enhanced */}
+        {order.tracking_status === 'Out for Delivery' && order.status !== 'completed' && (
+          <TouchableOpacity 
+            style={styles.orderReceivedButton}
+            onPress={() => {
+              Alert.alert(
+                'Order Received',
+                'Confirm that you have received this order?',
+                [
+                  {
+                    text: 'Yes, Confirm',
+                    onPress: () => {
+                      Alert.alert('Success', 'Thank you for confirming! You can now leave a review.');
+                      navigation.navigate('Home');
+                    },
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                ]
+              );
+            }}
+          >
+            <Text style={styles.orderReceivedIcon}>✓</Text>
+            <Text style={styles.orderReceivedText}>Order Received - Leave Review</Text>
+          </TouchableOpacity>
         )}
 
         {/* Action Buttons */}
@@ -359,7 +496,10 @@ const OrderDetailsScreen = ({ navigation, route }) => {
         {/* Help Section */}
         <TouchableOpacity style={styles.helpSection}>
           <Text style={styles.helpIcon}>❓</Text>
-          <Text style={styles.helpText}>Need help with your order?</Text>
+          <View style={styles.helpContent}>
+            <Text style={styles.helpText}>Need help with your order?</Text>
+            <Text style={styles.helpSubtext}>Contact our support team</Text>
+          </View>
           <Text style={styles.helpArrow}>→</Text>
         </TouchableOpacity>
 
@@ -425,9 +565,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -709,6 +846,212 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 14,
     fontWeight: '600',
+  },
+  courierSection: {
+    marginBottom: 20,
+  },
+  courierCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  courierRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  courierLabel: {
+    fontSize: 14,
+    color: colors.textLight,
+  },
+  courierValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  courierTrackButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  courierTrackButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  orderReceivedButton: {
+    backgroundColor: '#22c55e',
+    borderRadius: 12,
+    padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  orderReceivedIcon: {
+    fontSize: 24,
+    color: colors.white,
+    marginRight: 10,
+  },
+  orderReceivedText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Missing styles for enhanced UI
+  backBtn: {
+    padding: 5,
+  },
+  orderRefContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  progressContainer: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    color: colors.textLight,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  statusSummaryCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statusSummaryItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statusSummaryIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  statusSummaryLabel: {
+    fontSize: 12,
+    color: colors.textLight,
+    marginBottom: 4,
+  },
+  statusSummaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  statusSummaryDivider: {
+    width: 1,
+    height: 50,
+    backgroundColor: colors.border,
+  },
+  stageInfoCurrent: {
+    backgroundColor: '#F0F9FF',
+    padding: 10,
+    borderRadius: 8,
+    marginLeft: -10,
+    paddingLeft: 10,
+  },
+  itemNumberBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  itemNumber: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  itemDetails: {
+    flex: 1,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  addressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addressIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  addressHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  addressPhone: {
+    fontSize: 13,
+    color: colors.textLight,
+    marginBottom: 8,
+  },
+  addressDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 10,
+  },
+  courierHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  courierIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  courierName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  courierDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  helpContent: {
+    flex: 1,
+  },
+  helpSubtext: {
+    fontSize: 12,
+    color: colors.textLight,
+    marginTop: 2,
   },
 });
 

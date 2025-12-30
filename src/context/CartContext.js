@@ -111,18 +111,20 @@ export const CartProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
       const response = await ApiService.login(email, password);
+      console.log('[CartContext] Login response:', response);
+      
       if (response.success) {
+        console.log('[CartContext] Login successful, setting user info');
         setUserInfo(response.data.user);
         setIsLoggedIn(true);
-        // Save token if returned
-        if (response.data.token) {
-          await AsyncStorage.setItem('authToken', response.data.token);
-        }
+        // Token is already saved by ApiService.login()
         return { success: true, message: 'Login successful' };
       } else {
+        console.log('[CartContext] Login failed:', response.error);
         return { success: false, message: response.error };
       }
     } catch (error) {
+      console.error('[CartContext] Login error:', error);
       return { success: false, message: error.message };
     } finally {
       setIsLoadingAuth(false);
@@ -143,15 +145,16 @@ export const CartProvider = ({ children }) => {
 
   const registerWithBackend = async (firstName, lastName, email, password, confirmPassword) => {
     const response = await ApiService.register(firstName, lastName, email, password, confirmPassword);
+    console.log('[CartContext] Register response:', response);
+    
     if (response.success) {
+      console.log('[CartContext] Registration successful, setting user info');
       setUserInfo(response.data.user);
       setIsLoggedIn(true);
-      // Save token if returned
-      if (response.data.token) {
-        await AsyncStorage.setItem('authToken', response.data.token);
-      }
+      // Token is already saved by ApiService.register()
       return { success: true, message: 'Registration successful' };
     } else {
+      console.log('[CartContext] Registration failed:', response.error);
       return { success: false, message: response.error };
     }
   };

@@ -1,0 +1,2 @@
+Set-Location YAKAN-WEB-main
+php artisan serve --host=0.0.0.0 --port=8000

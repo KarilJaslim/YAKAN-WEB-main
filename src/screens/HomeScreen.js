@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,53 +11,134 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useCart } from '../context/CartContext';
 import BottomNav from '../components/BottomNav';
 import colors from '../constants/colors';
+import ApiService from '../services/api';
+import API_CONFIG from '../config/config';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { getCartCount, isLoggedIn, addToWishlist, removeFromWishlist, isInWishlist } = useCart();
 
-  const products = [
-    {
-      id: 1,
-      name: 'Saputangan',
-      description: 'The Saputangan is a square piece of woven cloth usually measuring no less than...',
-      price: 50.00,
-      featured: true,
-      image: require('../assets/images/Saputangan.jpg'),
-    },
-    {
-      id: 2,
-      name: 'Pinantupan',
-      description: 'Pinantupan uses simple patterns like flowers and diamonds and are also used for...',
-      price: 50.00,
-      featured: true,
-      image: require('../assets/images/pinantupan.jpg'),
-    },
-    {
-      id: 3,
-      name: 'Birey - Birey',
-      description: 'Birey-birey is a traditional handwoven textile pattern that resembles the sections of...',
-      price: 50.00,
-      featured: false,
-      image: require('../assets/images/Patterns.jpg'),
-    },
-    {
-      id: 4,
-      name: 'Saputangan',
-      description: 'The Saputangan is a square piece of woven cloth usually measuring no less than...',
-      price: 50.00,
-      featured: false,
-      image: require('../assets/images/Saputangan.jpg'),
-    },
-  ];
+  // Fetch products from API on component mount
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      console.log('🏠 HomeScreen: Fetching products from API...');
+      
+      const response = await ApiService.getProducts();
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch products');
+      }
+      
+      // Handle triple-nested response
+      const apiData = response.data?.data || response.data || {};
+      const productsData = Array.isArray(apiData.data) ? apiData.data : Array.isArray(apiData) ? apiData : [];
+      
+      console.log('🏠 HomeScreen: Fetched', productsData.length, 'products');
+      
+      // Transform API data
+      const transformedProducts = productsData.map((product, index) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: parseFloat(product.price),
+        featured: index < 2, // First 2 products are featured
+        category: product.category?.name || 'Uncategorized',
+        image: product.image 
+          ? { uri: `${API_CONFIG.STORAGE_BASE_URL}/products/${product.image}` }
+          : require('../assets/images/Saputangan.jpg'),
+        stock: product.stock || 0,
+      }));
+      
+      setProducts(transformedProducts);
+    } catch (error) {
+      console.error('🏠 HomeScreen: Error fetching products:', error);
+      // Fallback to mock data
+      const mockProducts = [
+        {
+          id: 1,
+          name: 'Yakan Traditional Dress',
+          description: 'Beautiful handwoven traditional Yakan dress with intricate patterns',
+          price: 2500.00,
+          featured: true,
+          image: require('../assets/images/Saputangan.jpg'),
+        },
+        {
+          id: 2,
+          name: 'Yakan Headwrap',
+          description: 'Traditional Yakan headwrap with authentic patterns',
+          price: 450.00,
+          featured: true,
+          image: require('../assets/images/pinantupan.jpg'),
+        },
+        {
+          id: 3,
+          name: 'Yakan Wall Hanging',
+          description: 'Decorative wall hanging featuring traditional Yakan weaving',
+          price: 1200.00,
+          featured: false,
+          image: require('../assets/images/Patterns.jpg'),
+        },
+      ];
+      setProducts(mockProducts);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const featuredProducts = products.filter(p => p.featured);
+  
+  const handleMenuPress = () => {
+    setMenuOpen(true);
+  };
+
+  const handleMenuClose = () => {
+    setMenuOpen(false);
+  };
+
+  const handleMenuNavigation = (screen) => {
+    setMenuOpen(false);
+    navigation.navigate(screen);
+  };
+
+  const handleLogout = () => {
+    setMenuOpen(false);
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: () => {
+        // Clear user data and navigate to login
+        navigation.navigate('Login');
+      }},
+    ]);
+  };
+  
+  // Show loading state while fetching
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading products...</Text>
+        </View>
+        <BottomNav navigation={navigation} activeRoute="Home" />
+      </View>
+    );
+  }
 
   const toggleFavorite = (product) => {
     if (!isLoggedIn) {
@@ -171,7 +252,11 @@ export default function HomeScreen({ navigation }) {
           >
             <View style={styles.heroOverlay}>
               <View style={styles.topBar}>
-                <TouchableOpacity style={styles.menuButton}>
+                <TouchableOpacity 
+                  style={styles.menuButton}
+                  onPress={handleMenuPress}
+                  activeOpacity={0.7}
+                >
                   <Text style={styles.menuIcon}>☰</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -276,6 +361,152 @@ export default function HomeScreen({ navigation }) {
         </View>
       </ScrollView>
 
+      {/* MENU MODAL */}
+      <Modal
+        visible={menuOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleMenuClose}
+      >
+        <TouchableOpacity 
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={handleMenuClose}
+        >
+          <View style={styles.menuContainer}>
+            <View style={styles.menuHeader}>
+              <Text style={styles.menuTitle}>Menu</Text>
+              <TouchableOpacity onPress={handleMenuClose}>
+                <Text style={styles.menuCloseIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.menuContent} showsVerticalScrollIndicator={false}>
+              {/* Main Navigation */}
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('Home')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>⌂</Text>
+                </View>
+                <Text style={styles.menuItemText}>Home</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('Products')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>◆</Text>
+                </View>
+                <Text style={styles.menuItemText}>Products</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('CustomOrder')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>✎</Text>
+                </View>
+                <Text style={styles.menuItemText}>Custom Order</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('CulturalHeritage')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>◈</Text>
+                </View>
+                <Text style={styles.menuItemText}>Cultural Heritage</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('Wishlist')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>♡</Text>
+                </View>
+                <Text style={styles.menuItemText}>Wishlist</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('TrackOrders')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>▢</Text>
+                </View>
+                <Text style={styles.menuItemText}>Track Orders</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              {/* Account Section */}
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('Account')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>◉</Text>
+                </View>
+                <Text style={styles.menuItemText}>Account</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => handleMenuNavigation('Settings')}
+                activeOpacity={0.6}
+              >
+                <View style={styles.menuIconBox}>
+                  <Text style={styles.menuItemIcon}>⚙</Text>
+                </View>
+                <Text style={styles.menuItemText}>Settings</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              {/* Auth Section */}
+              {isLoggedIn && (
+                <TouchableOpacity 
+                  style={[styles.menuItem, styles.menuItemLogout]}
+                  onPress={handleLogout}
+                  activeOpacity={0.6}
+                >
+                  <View style={[styles.menuIconBox, styles.menuIconBoxLogout]}>
+                    <Text style={[styles.menuItemIcon, styles.menuItemIconLogout]}>⊗</Text>
+                  </View>
+                  <Text style={[styles.menuItemText, styles.menuItemTextLogout]}>Logout</Text>
+                </TouchableOpacity>
+              )}
+
+              {!isLoggedIn && (
+                <TouchableOpacity 
+                  style={[styles.menuItem, styles.menuItemLogin]}
+                  onPress={() => handleMenuNavigation('Login')}
+                  activeOpacity={0.6}
+                >
+                  <View style={[styles.menuIconBox, styles.menuIconBoxLogin]}>
+                    <Text style={[styles.menuItemIcon, styles.menuItemIconLogin]}>⊕</Text>
+                  </View>
+                  <Text style={[styles.menuItemText, styles.menuItemTextLogin]}>Login</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* BOTTOM NAVIGATION */}
       <BottomNav navigation={navigation} activeRoute="Home" />
     </View>
@@ -286,6 +517,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: colors.text,
   },
   scrollView: {
     flex: 1,
@@ -589,5 +831,115 @@ const styles = StyleSheet.create({
   },
   cartIcon: {
     fontSize: 18,
+  },
+  // MENU MODAL STYLES
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-start',
+  },
+  menuContainer: {
+    width: '72%',
+    height: '100%',
+    backgroundColor: '#fafafa',
+    paddingTop: 50,
+    shadowColor: colors.black,
+    shadowOffset: { width: 3, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#efefef',
+  },
+  menuTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2c2c2c',
+    letterSpacing: 0.5,
+  },
+  menuCloseIcon: {
+    fontSize: 24,
+    color: '#999',
+    fontWeight: '300',
+  },
+  menuContent: {
+    flex: 1,
+    paddingVertical: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginVertical: 2,
+  },
+  menuIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  menuItemIcon: {
+    fontSize: 18,
+    color: '#666',
+    fontWeight: '300',
+  },
+  menuItemText: {
+    fontSize: 15,
+    color: '#2c2c2c',
+    fontWeight: '400',
+    letterSpacing: 0.3,
+  },
+  menuItemLogin: {
+    marginHorizontal: 12,
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  menuIconBoxLogin: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  menuItemIconLogin: {
+    color: colors.white,
+  },
+  menuItemTextLogin: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  menuItemLogout: {
+    marginHorizontal: 12,
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#ffe8e8',
+  },
+  menuIconBoxLogout: {
+    backgroundColor: 'rgba(211, 47, 47, 0.15)',
+  },
+  menuItemIconLogout: {
+    color: '#d32f2f',
+  },
+  menuItemTextLogout: {
+    color: '#d32f2f',
+    fontWeight: '600',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#efefef',
+    marginVertical: 8,
+    marginHorizontal: 16,
   },
 });

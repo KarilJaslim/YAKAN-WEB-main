@@ -24,7 +24,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useCart();
+  const { registerWithBackend } = useCart();
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
@@ -38,18 +38,24 @@ export default function RegisterScreen({ navigation }) {
     
     setIsLoading(true);
     
-    // Simulate registration process
-    setTimeout(() => {
-      const fullName = `${firstName} ${middleName} ${lastName}`.trim();
+    try {
+      const result = await registerWithBackend(firstName, lastName, email, password, confirmPassword);
       
+      if (result.success) {
+        Alert.alert('Success', 'Registration successful! You are now logged in.', [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Home')
+          }
+        ]);
+      } else {
+        Alert.alert('Registration Failed', result.message || 'An error occurred during registration');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'An error occurred during registration');
+    } finally {
       setIsLoading(false);
-      Alert.alert('Success', `Welcome, ${fullName}! Registration successful!`, [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Login')
-        }
-      ]);
-    }, 2000);
+    }
   };
 
   return (

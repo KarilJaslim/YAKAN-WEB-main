@@ -39,6 +39,11 @@ const ProductsScreen = ({ navigation }) => {
       
       console.log('🔵 API Response:', JSON.stringify(response, null, 2));
       
+      // Check if API call was successful
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch products');
+      }
+      
       // Handle triple-nested response: response.data.data.data
       // ApiService wraps in {success, data}, Laravel wraps in {data: {data: []}}
       const apiData = response.data?.data || response.data || {};
@@ -67,7 +72,7 @@ const ProductsScreen = ({ navigation }) => {
       setCategories(uniqueCategories);
     } catch (error) {
       console.error('Error fetching products:', error);
-      Alert.alert('Error', 'Failed to fetch products. Using offline data.');
+      console.log('🔴 Using offline mock data due to API error');
       
       // Fallback to mock data if API fails
       const mockProducts = [

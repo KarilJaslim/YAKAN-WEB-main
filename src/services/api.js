@@ -21,8 +21,10 @@ class ApiService {
    */
   async getToken() {
     try {
-      if (!this.token) {
-        this.token = await AsyncStorage.getItem('authToken');
+      // Always check storage first to ensure we have the latest token
+      const storedToken = await AsyncStorage.getItem('authToken');
+      if (storedToken) {
+        this.token = storedToken;
       }
       return this.token;
     } catch (error) {
@@ -66,18 +68,20 @@ class ApiService {
       const headers = {
         'Content-Type': isFormData ? 'multipart/form-data' : 'application/json',
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true', // Skip ngrok browser warning
+        'ngrok-skip-browser-warning': 'true',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       };
 
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log(`[API] Auth token present: ${token.substring(0, 20)}...`);
+      } else {
+        console.warn(`[API] WARNING: No auth token for ${method} ${endpoint}`);
       }
 
       const config = {
         method,
         headers,
-        timeout: API_CONFIG.REQUEST_TIMEOUT,
       };
 
       if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
@@ -86,7 +90,17 @@ class ApiService {
 
       console.log(`[API] ${method} ${endpoint}`);
       
-      const response = await fetch(url, config);
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), API_CONFIG.REQUEST_TIMEOUT)
+      );
+      
+      const response = await Promise.race([
+        fetch(url, config),
+        timeoutPromise
+      ]);
+      
+      console.log(`[API] Response status: ${response.status}`);
       
       // Try to parse as JSON, handle non-JSON responses
       let responseText = await response.text();
@@ -96,18 +110,26 @@ class ApiService {
         responseText = responseText.slice(1);
       }
       
+      // Trim whitespace
+      responseText = responseText.trim();
+      
+      console.log(`[API] Response length: ${responseText.length} chars`);
+      
       let responseData;
       try {
         responseData = JSON.parse(responseText);
+        console.log(`[API] Successfully parsed JSON response`);
       } catch (parseError) {
         console.error(`[API Error] Failed to parse JSON from ${endpoint}. Status: ${response.status}`);
-        console.error(`[API Debug] Response text: ${responseText.substring(0, 200)}`);
+        console.error(`[API Debug] Response text: ${responseText.substring(0, 300)}`);
         throw new Error(`Invalid response format from server (${response.status}). Please check your API endpoint and ensure the backend is running.`);
       }
 
       if (!response.ok) {
         throw new Error(responseData.message || `HTTP Error: ${response.status}`);
       }
+
+      console.log(`[API] Response data:`, JSON.stringify(responseData).substring(0, 500));
 
       return {
         success: true,
@@ -130,13 +152,25 @@ class ApiService {
    * Register new user
    */
   async register(firstName, lastName, email, password, confirmPassword) {
-    return this.request('POST', API_CONFIG.ENDPOINTS.AUTH.REGISTER, {
+    const response = await this.request('POST', API_CONFIG.ENDPOINTS.AUTH.REGISTER, {
       first_name: firstName,
       last_name: lastName,
       email,
       password,
       password_confirmation: confirmPassword,
     });
+
+    if (response.success) {
+      // The response has nested data structure: response.data.data contains token and user
+      const innerData = response.data?.data || response.data;
+      const token = innerData?.token;
+      
+      if (token) {
+        await this.saveToken(token);
+      }
+    }
+
+    return response;
   }
 
   /**
@@ -148,8 +182,14 @@ class ApiService {
       password,
     });
 
-    if (response.success && response.data.token) {
-      await this.saveToken(response.data.token);
+    if (response.success) {
+      // The response has nested data structure: response.data.data contains token and user
+      const innerData = response.data?.data || response.data;
+      const token = innerData?.token;
+      
+      if (token) {
+        await this.saveToken(token);
+      }
     }
 
     return response;
@@ -273,6 +313,28 @@ class ApiService {
     return this.request('GET', endpoint);
   }
 
+  // ==================== SHIPPING ENDPOINTS ====================
+
+  /**
+   * Get active shipping rate
+   */
+  async getShippingRate() {
+    return this.request('GET', '/shipping/rate');
+  }
+
+  /**
+   * Calculate shipping fee based on distance or coordinates
+   */
+  async calculateShippingFee(data) {
+    // Support both old format (just distance) and new format (with coordinates)
+    const payload = typeof data === 'number' 
+      ? { distance_km: data }
+      : data;
+    
+    console.log('[API] Shipping fee payload:', JSON.stringify(payload));
+    return this.request('POST', '/shipping/calculate-fee', payload);
+  }
+
   // ==================== PAYMENT ENDPOINTS ====================
 
   /**
@@ -359,6 +421,100 @@ class ApiService {
   async deleteAddress(addressId) {
     const endpoint = API_CONFIG.ENDPOINTS.USER.DELETE_ADDRESS.replace(':id', addressId);
     return this.request('DELETE', endpoint);
+  }
+
+  // ==================== CUSTOM ORDERS ENDPOINTS ====================
+
+  /**
+   * Get all custom orders
+   */
+  async getCustomOrders(filters = {}) {
+    const queryString = new URLSearchParams(filters).toString();
+    const endpoint = queryString 
+      ? `/custom-orders?${queryString}`
+      : '/custom-orders';
+    
+    return this.request('GET', endpoint);
+  }
+
+  /**
+   * Get single custom order
+   */
+  async getCustomOrder(orderId) {
+    return this.request('GET', `/custom-orders/${orderId}`);
+  }
+
+  /**
+   * Create custom order
+   */
+  async createCustomOrder(orderData) {
+    return this.request('POST', '/custom-orders', orderData);
+  }
+
+  /**
+   * Update custom order status
+   */
+  async updateCustomOrderStatus(orderId, status) {
+    return this.request('PATCH', `/custom-orders/${orderId}/status`, { status });
+  }
+
+  /**
+   * Cancel custom order
+   */
+  async cancelCustomOrder(orderId) {
+    return this.request('POST', `/custom-orders/${orderId}/cancel`);
+  }
+
+  // ==================== POLLING/REAL-TIME METHODS ====================
+
+  /**
+   * Get all chats
+   */
+  async getChats() {
+    console.log('[ChatAPI] Fetching chats with token:', this.token ? 'present' : 'missing');
+    const response = await this.request('GET', API_CONFIG.ENDPOINTS.CHAT.LIST);
+    console.log('[ChatAPI] getChats response:', response);
+    return response;
+  }
+
+  /**
+   * Get specific chat
+   */
+  async getChat(chatId) {
+    console.log('[ChatAPI] Fetching chat', chatId, 'with token:', this.token ? 'present' : 'missing');
+    const endpoint = API_CONFIG.ENDPOINTS.CHAT.GET.replace(':id', chatId);
+    const response = await this.request('GET', endpoint);
+    console.log('[ChatAPI] getChat response:', response);
+    return response;
+  }
+
+  /**
+   * Create new chat
+   */
+  async createChat(subject, message) {
+    console.log('[ChatAPI] Creating chat with token:', this.token ? 'present' : 'missing');
+    return await this.request('POST', API_CONFIG.ENDPOINTS.CHAT.CREATE, {
+      subject,
+      message,
+    });
+  }
+
+  /**
+   * Send message in chat
+   */
+  async sendChatMessage(chatId, message) {
+    console.log('[ChatAPI] Sending message with token:', this.token ? 'present' : 'missing');
+    const endpoint = API_CONFIG.ENDPOINTS.CHAT.SEND_MESSAGE.replace(':id', chatId);
+    return await this.request('POST', endpoint, { message });
+  }
+
+  /**
+   * Update chat status
+   */
+  async updateChatStatus(chatId, status) {
+    console.log('[ChatAPI] Updating chat status with token:', this.token ? 'present' : 'missing');
+    const endpoint = API_CONFIG.ENDPOINTS.CHAT.UPDATE_STATUS.replace(':id', chatId);
+    return await this.request('PATCH', endpoint, { status });
   }
 
   // ==================== POLLING/REAL-TIME METHODS ====================

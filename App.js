@@ -2,6 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CartProvider } from './src/context/CartContext';
+import { NotificationProvider } from './src/context/NotificationContext';
+import NotificationBar from './src/components/NotificationBar';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
@@ -16,11 +18,14 @@ import CartScreen from './src/screens/CartScreen';
 import WishlistScreen from './src/screens/WishlistScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
 import TrackOrderScreen from './src/screens/TrackOrderScreen';
+import OrdersScreen from './src/screens/OrdersScreen';
 import OrderDetailsScreen from './src/screens/OrderDetailsScreen';
 import SavedAddressesScreen from './src/screens/SavedAddressesScreen';
 import PaymentMethodsScreen from './src/screens/PaymentMethodsScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import ReviewsScreen from './src/screens/ReviewsScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
+import ChatScreen from './src/screens/ChatScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -38,13 +43,15 @@ const AppNavigator = () => (
     <Stack.Screen name="CustomOrder" component={CustomOrderScreen} />
     <Stack.Screen name="CulturalHeritage" component={CulturalHeritageScreen} />
     <Stack.Screen name="Account" component={AccountScreen} />
-    
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="Chat" component={ChatScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
     <Stack.Screen name="Cart" component={CartScreen} />
     <Stack.Screen name="Wishlist" component={WishlistScreen} />
     <Stack.Screen name="Checkout" component={CheckoutScreen} />
     <Stack.Screen name="TrackOrders" component={TrackOrderScreen} />
+    <Stack.Screen name="Orders" component={OrdersScreen} />
     <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
@@ -58,10 +65,13 @@ const AppNavigator = () => (
 
 export default function App() {
   return (
-    <CartProvider>
-      <NavigationContainer>
-        <AppNavigator />
-      </NavigationContainer>
-    </CartProvider>
+    <NotificationProvider>
+      <CartProvider>
+        <NavigationContainer>
+          <NotificationBar />
+          <AppNavigator />
+        </NavigationContainer>
+      </CartProvider>
+    </NotificationProvider>
   );
 }
